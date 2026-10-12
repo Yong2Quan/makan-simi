@@ -1,10 +1,25 @@
 <!DOCTYPE html>
+<!--
+  ███ Makan Roulette ███
+  Copyright (c) 2026 Thomas Yong — https://github.com/Yong2Quan
+  Source: https://github.com/Yong2Quan/makan-simi
+  Live:   https://yong2quan.github.io/makan-simi/
+
+  Built by Thomas Yong. If you fork, reuse or learn from this, please keep
+  this notice and the footer credit intact. Terima kasih / 谢谢 / thanks ah.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
 <meta name="theme-color" content="#B3001B" />
 <meta name="description" content="Can't decide what to makan? Spin the wheel and let Makan Roulette chope your next meal in Singapore." />
+<meta name="author" content="Thomas Yong" />
+<meta name="copyright" content="© 2026 Thomas Yong" />
+<meta property="og:title" content="Makan Roulette — What to makan today?" />
+<meta property="og:description" content="Spin the wheel and let Makan Roulette chope your next hawker meal in Singapore." />
+<meta property="og:url" content="https://yong2quan.github.io/makan-simi/" />
+<meta property="og:type" content="website" />
 <title>Makan Roulette — What to makan today?</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -180,9 +195,20 @@
   <!-- Result -->
   <section id="result" class="mt-6 hidden" aria-live="polite"></section>
 
-  <footer class="mt-auto pt-8 text-center text-[11px] font-medium leading-relaxed text-kopi-700/45">
-    Makan Roulette &middot; Made with ❤️ &amp; chilli for Singapore<br />
-    Hawker listings are a curated guide — opening hours not confirm plus chop, better check first.
+  <footer class="mt-auto pt-8 text-center">
+    <p class="text-[11px] font-medium leading-relaxed text-kopi-700/45">
+      Makan Roulette &middot; Made with ❤️ &amp; chilli for Singapore<br />
+      Hawker listings are a curated guide — opening hours not confirm plus chop, better check first.
+    </p>
+
+    <div class="mx-auto mt-6 h-px w-16 bg-kopi-800/10"></div>
+
+    <p class="mt-4 text-[12px] font-semibold tracking-wide text-kopi-700/60">
+      &copy; <span id="year">2026</span> Thomas Yong
+      <span class="px-1.5 text-kopi-700/25">&middot;</span>
+      <a href="https://github.com/Yong2Quan" target="_blank" rel="noopener noreferrer"
+         class="underline decoration-kopi-700/30 underline-offset-[3px] transition-colors hover:text-chilli-600 hover:decoration-chilli-600">Contact</a>
+    </p>
   </footer>
 </div>
 
@@ -879,6 +905,8 @@ window.addEventListener('resize', () => {
   resizeTimer = setTimeout(() => { resizeCanvas(); sizeConfetti(); }, 120);
 });
 window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 240));
+
+$('#year').textContent = new Date().getFullYear();
 
 resizeCanvas();
 sizeConfetti();
