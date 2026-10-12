@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#B3001B" />
+<meta name="description" content="Can't decide what to makan? Spin the wheel and let Makan Roulette chope your next meal in Singapore." />
+<title>Makan Roulette — What to makan today?</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          chilli:  { 50:'#FFF1F1', 100:'#FFE0E0', 400:'#F0455B', 500:'#D7263D', 600:'#B3001B', 700:'#8A0014' },
+          sambal:  { 400:'#FF8C42', 500:'#F4601F', 600:'#D94A0C' },
+          kaya:    { 300:'#FFD56B', 400:'#FFB400', 500:'#F59E00' },
+          pandan:  { 500:'#2F7D4F' },
+          kopi:    { 700:'#4A2C17', 800:'#36200F' },
+          rice:    { 50:'#FFFBF5', 100:'#FFF4E6' }
+        },
+        fontFamily: {
+          display: ['"Baloo 2"', 'system-ui', 'sans-serif'],
+          sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif']
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  :root { --safe-b: env(safe-area-inset-bottom, 0px); }
+
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #FFE3B0 0%, rgba(255,227,176,0) 60%),
+      radial-gradient(800px 500px at 110% 20%, #FFD0CE 0%, rgba(255,208,206,0) 55%),
+      #FFFBF5;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Subtle peranakan-tile dot motif in the backdrop */
+  .batik::before {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .055;
+    background-image:
+      radial-gradient(circle at 10px 10px, #B3001B 2.5px, transparent 2.6px),
+      radial-gradient(circle at 30px 30px, #F4601F 2.5px, transparent 2.6px);
+    background-size: 40px 40px;
+  }
+
+  .wheel-stage { touch-action: manipulation; }
+
+  .pointer { filter: drop-shadow(0 4px 6px rgba(138,0,20,.35)); }
+
+  .hub {
+    background: radial-gradient(circle at 32% 28%, #FF6B5B 0%, #D7263D 45%, #8A0014 100%);
+    box-shadow:
+      0 0 0 6px #FFFBF5,
+      0 0 0 9px rgba(215,38,61,.25),
+      0 14px 28px -8px rgba(138,0,20,.65),
+      inset 0 -6px 14px rgba(0,0,0,.28),
+      inset 0 5px 10px rgba(255,255,255,.3);
+    transition: transform .14s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
+  }
+  .hub:active:not(:disabled) { transform: translate(-50%,-50%) scale(.93); }
+  .hub:disabled { filter: saturate(.6) brightness(.95); cursor: not-allowed; }
+
+  .hub-idle { animation: hubPulse 2.4s ease-in-out infinite; }
+  @keyframes hubPulse {
+    0%,100% { box-shadow: 0 0 0 6px #FFFBF5, 0 0 0 9px rgba(215,38,61,.25), 0 14px 28px -8px rgba(138,0,20,.65), inset 0 -6px 14px rgba(0,0,0,.28), inset 0 5px 10px rgba(255,255,255,.3); }
+    50%     { box-shadow: 0 0 0 6px #FFFBF5, 0 0 0 16px rgba(215,38,61,.12), 0 18px 34px -8px rgba(138,0,20,.7), inset 0 -6px 14px rgba(0,0,0,.28), inset 0 5px 10px rgba(255,255,255,.3); }
+  }
+
+  .card-pop { animation: cardPop .5s cubic-bezier(.2,.9,.3,1.3) both; }
+  @keyframes cardPop { from { opacity:0; transform: translateY(22px) scale(.95); } to { opacity:1; transform:none; } }
+
+  .stagger > * { animation: slideUp .45s cubic-bezier(.2,.8,.3,1) both; }
+  .stagger > *:nth-child(1) { animation-delay: .10s }
+  .stagger > *:nth-child(2) { animation-delay: .19s }
+  .stagger > *:nth-child(3) { animation-delay: .28s }
+  @keyframes slideUp { from { opacity:0; transform: translateY(14px); } to { opacity:1; transform:none; } }
+
+  .shimmer {
+    background: linear-gradient(100deg, #B3001B 0%, #F4601F 42%, #FFB400 58%, #B3001B 100%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shimmer 5s linear infinite;
+  }
+  @keyframes shimmer { to { background-position: -220% 0; } }
+
+  .sheet { transition: transform .32s cubic-bezier(.2,.8,.3,1); }
+  .scrim { transition: opacity .3s ease; }
+
+  .chip-area { transition: transform .12s ease, background-color .15s ease, border-color .15s ease; }
+  .chip-area:active { transform: scale(.95); }
+
+  .btn-press { transition: transform .12s ease, box-shadow .2s ease; }
+  .btn-press:active { transform: scale(.96); }
+
+  #confetti { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Famous stall names are long — give them two lines instead of truncating. */
+  .clamp2 {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hub-idle, .shimmer { animation: none; }
+    .card-pop, .stagger > * { animation-duration: .01ms; }
+  }
+</style>
+</head>
+
+<body class="batik font-sans text-kopi-800 antialiased">
+
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<div class="relative z-10 mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-[calc(2rem+var(--safe-b))] pt-[max(1.25rem,env(safe-area-inset-top))]">
+
+  <!-- Header -->
+  <header class="mb-4 text-center">
+    <div class="mb-1.5 inline-flex items-center gap-2 rounded-full border border-chilli-100 bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[.14em] text-chilli-600 shadow-sm backdrop-blur">
+      <span class="relative flex h-1.5 w-1.5">
+        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-chilli-500 opacity-75"></span>
+        <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-chilli-500"></span>
+      </span>
+      Singapore &middot; Hawker Edition
+    </div>
+    <h1 class="font-display text-[2.6rem] leading-none shimmer">Makan Roulette</h1>
+    <p class="mt-1.5 text-sm font-medium text-kopi-700/70">Cannot decide? Let the wheel decide lah. 🎯</p>
+  </header>
+
+  <!-- Location bar -->
+  <button id="locationBtn" type="button"
+    class="btn-press mb-5 flex w-full items-center gap-3 rounded-2xl border border-chilli-100 bg-white/90 px-4 py-3 text-left shadow-[0_4px_16px_-6px_rgba(138,0,20,.25)] backdrop-blur">
+    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-chilli-50 text-lg" id="locIcon">📍</span>
+    <span class="min-w-0 flex-1">
+      <span class="block text-[10px] font-bold uppercase tracking-[.12em] text-chilli-500">You are makan-ing near</span>
+      <span class="block truncate text-[15px] font-bold text-kopi-800" id="locLabel">Finding you…</span>
+    </span>
+    <span class="shrink-0 rounded-full bg-kaya-400/20 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-sambal-600">Change</span>
+  </button>
+
+  <!-- Wheel -->
+  <section class="wheel-stage relative mx-auto w-full" aria-label="Food wheel">
+    <div class="pointer absolute left-1/2 top-[-6px] z-20 -translate-x-1/2">
+      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M20 36 L6 6 Q20 14 34 6 Z" fill="#B3001B"/>
+        <path d="M20 31 L11 10 Q20 15 29 10 Z" fill="#FFB400"/>
+      </svg>
+    </div>
+
+    <div class="relative mx-auto aspect-square w-full max-w-[380px]">
+      <div class="absolute inset-0 rounded-full bg-gradient-to-br from-chilli-600 via-sambal-500 to-kaya-400 p-[7px] shadow-[0_22px_45px_-18px_rgba(138,0,20,.75)]">
+        <div class="h-full w-full rounded-full bg-rice-50 p-[5px]">
+          <canvas id="wheel" class="h-full w-full rounded-full" role="img" aria-label="Spinning wheel of Singaporean food"></canvas>
+        </div>
+      </div>
+
+      <button id="spinBtn" type="button"
+        class="hub hub-idle absolute left-1/2 top-1/2 z-10 flex h-[27%] w-[27%] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full text-white">
+        <span class="font-display text-[clamp(1rem,5.2vw,1.5rem)] leading-none tracking-wide drop-shadow" id="spinLabel">SPIN</span>
+        <span class="mt-0.5 text-[clamp(.48rem,2vw,.6rem)] font-bold uppercase tracking-[.16em] opacity-85" id="spinSub">makan!</span>
+      </button>
+    </div>
+  </section>
+
+  <p class="mt-4 text-center text-[13px] font-semibold text-kopi-700/60" id="hintText">Tap <span class="text-chilli-600">SPIN</span> — don't anyhow choose, let fate decide. 😋</p>
+
+  <!-- Result -->
+  <section id="result" class="mt-6 hidden" aria-live="polite"></section>
+
+  <footer class="mt-auto pt-8 text-center text-[11px] font-medium leading-relaxed text-kopi-700/45">
+    Makan Roulette &middot; Made with ❤️ &amp; chilli for Singapore<br />
+    Hawker listings are a curated guide — opening hours not confirm plus chop, better check first.
+  </footer>
+</div>
+
+<!-- Area picker sheet -->
+<div id="scrim" class="scrim pointer-events-none fixed inset-0 z-40 bg-kopi-800/50 opacity-0 backdrop-blur-sm"></div>
+<div id="sheet" class="sheet fixed inset-x-0 bottom-0 z-50 translate-y-full rounded-t-[28px] bg-rice-50 shadow-[0_-10px_40px_-12px_rgba(138,0,20,.45)]">
+  <div class="mx-auto w-full max-w-md px-5 pb-[calc(1.5rem+var(--safe-b))] pt-3">
+    <div class="mx-auto mb-4 h-1.5 w-11 rounded-full bg-kopi-800/15"></div>
+    <div class="mb-1 flex items-baseline justify-between">
+      <h2 class="font-display text-2xl text-chilli-600">Where you at?</h2>
+      <button id="sheetClose" type="button" class="rounded-full px-3 py-1 text-sm font-bold text-kopi-700/50">Close</button>
+    </div>
+    <p class="mb-4 text-[13px] font-medium text-kopi-700/60">Use GPS, or just pick your neighbourhood.</p>
+
+    <button id="gpsBtn" type="button"
+      class="btn-press mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-chilli-600 to-sambal-500 px-4 py-3.5 text-[15px] font-extrabold text-white shadow-[0_10px_22px_-10px_rgba(138,0,20,.9)]">
+      <span>🛰️</span> Use my current location
+    </button>
+
+    <div class="no-scrollbar max-h-[42vh] overflow-y-auto pb-1">
+      <div id="areaGrid" class="grid grid-cols-2 gap-2"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ============================================================
+   1. DATA — food categories on the wheel
+   ============================================================ */
+const FOODS = [
+  { id:'chicken-rice',   name:'Chicken Rice',    emoji:'🍗', color:'#B3001B', tag:'Steamed or roasted — the national dish, confirm plus chop.' },
+  { id:'laksa',          name:'Laksa',           emoji:'🍜', color:'#F4601F', tag:'Coconut gravy so rich, today siam the diet first.' },
+  { id:'nasi-lemak',     name:'Nasi Lemak',      emoji:'🍚', color:'#FFB400', tag:'Pandan rice, crispy wing, extra sambal please.' },
+  { id:'char-kway-teow', name:'Char Kway Teow',  emoji:'🍳', color:'#2F7D4F', tag:'Wok hei power. Cholesterol? Later talk.' },
+  { id:'roti-prata',     name:'Roti Prata',      emoji:'🫓', color:'#D7263D', tag:'Kosong, egg, or plaster — dip until shiok.' },
+  { id:'mala',           name:'Mala Xiang Guo',  emoji:'🌶️', color:'#FF8C42', tag:'Xiao la? Zhong la? Your tongue, your problem.' },
+  { id:'hokkien-mee',    name:'Hokkien Mee',     emoji:'🦐', color:'#F59E00', tag:'Prawn stock, lime, sambal chilli. Damn solid.' },
+  { id:'kaya-toast',     name:'Kaya Toast',      emoji:'☕', color:'#4A2C17', tag:'Kopi-O kosong + soft boiled eggs. Steady breakfast.' }
+];
+
+/* ============================================================
+   2. DATA — curated hawker "database"
+   n: stall · c: hawker centre / address · a: planning area
+   ============================================================ */
+const STALLS = [
+  /* ----- Chicken Rice ----- */
+  { f:'chicken-rice', n:'Tian Tian Hainanese Chicken Rice', c:'Maxwell Food Centre, #01-10', a:'Chinatown', lat:1.28022, lng:103.84477 },
+  { f:'chicken-rice', n:'Ah Tai Hainanese Chicken Rice',    c:'Maxwell Food Centre, #01-07', a:'Chinatown', lat:1.28022, lng:103.84477 },
+  { f:'chicken-rice', n:'Hainanese Delicacy',               c:'Far East Plaza, #05-116',     a:'Orchard',    lat:1.30732, lng:103.83380 },
+  { f:'chicken-rice', n:'Loy Kee Best Chicken Rice',        c:'342 Balestier Road',          a:'Balestier',  lat:1.32700, lng:103.84550 },
+  { f:'chicken-rice', n:'Boon Tong Kee',                    c:'399 Balestier Road',          a:'Balestier',  lat:1.32630, lng:103.84400 },
+  { f:'chicken-rice', n:'Nam Kee Chicken Rice',             c:'Blk 209 Hougang Street 21',   a:'Hougang',    lat:1.36070, lng:103.88630 },
+  { f:'chicken-rice', n:'Katong Mei Wei Boneless Chicken Rice', c:'Dunman Food Centre, #01-27', a:'Katong', lat:1.30630, lng:103.89420 },
+  { f:'chicken-rice', n:'Sin Kee Famous Chicken Rice',      c:'Mei Ling Street Market',      a:'Queenstown', lat:1.29600, lng:103.80700 },
+  { f:'chicken-rice', n:'Ah Hiang Chicken Rice',            c:'Blk 505 Jurong West St 52',   a:'Jurong East',lat:1.34870, lng:103.73100 },
+  { f:'chicken-rice', n:'Round Market Chicken Rice',        c:'Tampines Round Market',       a:'Tampines',   lat:1.35280, lng:103.94300 },
+  { f:'chicken-rice', n:'Yishun Park Chicken Rice',         c:'Yishun Park Hawker Centre',   a:'Yishun',     lat:1.42490, lng:103.83550 },
+  { f:'chicken-rice', n:'Marsiling Roasted Delights',       c:'Marsiling Mall Hawker Centre',a:'Woodlands',  lat:1.43620, lng:103.77640 },
+  { f:'chicken-rice', n:'Bishan Hainanese Chicken Rice',    c:'Blk 22 Sin Ming Road Market', a:'Bishan',     lat:1.35050, lng:103.84860 },
+  { f:'chicken-rice', n:'448 Clementi Chicken Rice',        c:'Clementi 448 Market & Food Centre', a:'Clementi', lat:1.31510, lng:103.76500 },
+  { f:'chicken-rice', n:'Pasir Ris Roasted Chicken Rice',   c:'Pasir Ris Central Hawker Centre', a:'Pasir Ris', lat:1.37260, lng:103.94940 },
+
+  /* ----- Laksa ----- */
+  { f:'laksa', n:'328 Katong Laksa',                 c:'51 East Coast Road',                a:'Katong',       lat:1.30630, lng:103.90440 },
+  { f:'laksa', n:'Janggut Laksa',                    c:'Queensway Shopping Centre, #01-59', a:'Queenstown',   lat:1.28820, lng:103.80300 },
+  { f:'laksa', n:'Sungei Road Laksa',                c:'Blk 27 Jalan Berseh, #01-100',      a:'Jalan Besar',  lat:1.30830, lng:103.85880 },
+  { f:'laksa', n:'Depot Road Zhen Shan Mei Claypot Laksa', c:'Alexandra Village Food Centre', a:'Alexandra',  lat:1.28740, lng:103.80500 },
+  { f:'laksa', n:'928 Yishun Laksa',                 c:'Chong Pang Market & Food Centre',   a:'Yishun',       lat:1.43050, lng:103.82860 },
+  { f:'laksa', n:'Toa Payoh Rojak & Laksa',          c:'Blk 210 Lorong 8 Toa Payoh',        a:'Toa Payoh',    lat:1.34060, lng:103.85680 },
+  { f:'laksa', n:'Marine Parade Laksa',              c:'Marine Parade Central Market',      a:'Marine Parade',lat:1.30300, lng:103.90550 },
+  { f:'laksa', n:'Jurong Laksa Delight',             c:'Taman Jurong Market & Food Centre', a:'Jurong West',  lat:1.33480, lng:103.72050 },
+  { f:'laksa', n:'Tampines Nyonya Laksa',            c:'Tampines Street 11 Food Centre',    a:'Tampines',     lat:1.34800, lng:103.94000 },
+  { f:'laksa', n:'Bukit Timah Katong Laksa',         c:'Bukit Timah Market & Food Centre',  a:'Bukit Timah',  lat:1.33870, lng:103.77660 },
+  { f:'laksa', n:'Changi Village Laksa',             c:'Changi Village Hawker Centre',      a:'Changi',       lat:1.38930, lng:103.98760 },
+  { f:'laksa', n:'Punggol Nyonya Laksa',             c:'Punggol Place Hawker Centre',       a:'Punggol',      lat:1.40440, lng:103.90950 },
+  { f:'laksa', n:'Old Airport Road Laksa',           c:'Old Airport Road Food Centre',      a:'Geylang',      lat:1.30830, lng:103.88560 },
+  { f:'laksa', n:'Hong Lim Curry Laksa',             c:'Hong Lim Market & Food Centre',     a:'Chinatown',    lat:1.28510, lng:103.84650 },
+
+  /* ----- Nasi Lemak ----- */
+  { f:'nasi-lemak', n:'Selera Rasa Nasi Lemak',      c:'Adam Road Food Centre, #01-02',     a:'Bukit Timah',  lat:1.32500, lng:103.81420 },
+  { f:'nasi-lemak', n:'The Coconut Club',            c:'28 Ann Siang Road',                 a:'Chinatown',    lat:1.28100, lng:103.84630 },
+  { f:'nasi-lemak', n:'Boon Lay Power Nasi Lemak',   c:'Boon Lay Place Food Village',       a:'Jurong West',  lat:1.34650, lng:103.71400 },
+  { f:'nasi-lemak', n:'Chong Pang Nasi Lemak',       c:'Blk 447 Sembawang Road',            a:'Yishun',       lat:1.43050, lng:103.82860 },
+  { f:'nasi-lemak', n:'Ponggol Nasi Lemak Centre',   c:'965 Upper Serangoon Road',          a:'Hougang',      lat:1.37340, lng:103.89280 },
+  { f:'nasi-lemak', n:'Hjh Maimunah',                c:'Geylang Serai Market',              a:'Geylang',      lat:1.31710, lng:103.89770 },
+  { f:'nasi-lemak', n:'Mizzy Corner Nasi Lemak',     c:'Changi Village Hawker Centre',      a:'Changi',       lat:1.38930, lng:103.98760 },
+  { f:'nasi-lemak', n:'International Muslim Food Stall', c:'Changi Village Hawker Centre',  a:'Changi',       lat:1.38930, lng:103.98760 },
+  { f:'nasi-lemak', n:'Bedok 85 Nasi Lemak',         c:'Fengshan Market & Food Centre',     a:'Bedok',        lat:1.33010, lng:103.92980 },
+  { f:'nasi-lemak', n:'Hamidah Nasi Lemak',          c:'Geylang Serai Market, #02-166',     a:'Geylang',      lat:1.31710, lng:103.89770 },
+  { f:'nasi-lemak', n:'Nasi Lemak Ayam Taliwang',    c:'Blk 505 Jurong West St 52',         a:'Jurong East',  lat:1.34870, lng:103.73100 },
+  { f:'nasi-lemak', n:'Marsiling Nasi Lemak',        c:'Marsiling Mall Hawker Centre',      a:'Woodlands',    lat:1.43620, lng:103.77640 },
+  { f:'nasi-lemak', n:'Tiong Bahru Nasi Lemak',      c:'Tiong Bahru Market, #02-32',        a:'Tiong Bahru',  lat:1.28490, lng:103.83250 },
+  { f:'nasi-lemak', n:'Yishun Park Nasi Lemak',      c:'Yishun Park Hawker Centre',         a:'Yishun',       lat:1.42490, lng:103.83550 },
+
+  /* ----- Char Kway Teow ----- */
+  { f:'char-kway-teow', n:'Hill Street Fried Kway Teow',      c:'Blk 16 Bedok South Road',           a:'Bedok',        lat:1.32090, lng:103.93400 },
+  { f:'char-kway-teow', n:'Outram Park Fried Kway Teow Mee',  c:'Hong Lim Market & Food Centre',     a:'Chinatown',    lat:1.28510, lng:103.84650 },
+  { f:'char-kway-teow', n:'No. 18 Zion Road Fried Kway Teow', c:'Zion Riverside Food Centre',        a:'Tiong Bahru',  lat:1.29190, lng:103.83180 },
+  { f:'char-kway-teow', n:'Lao Fu Zi Fried Kway Teow',        c:'Old Airport Road Food Centre',      a:'Geylang',      lat:1.30830, lng:103.88560 },
+  { f:'char-kway-teow', n:'Dong Ji Fried Kway Teow',          c:'Old Airport Road Food Centre',      a:'Geylang',      lat:1.30830, lng:103.88560 },
+  { f:'char-kway-teow', n:'Hai Kee Teochew Char Kway Teow',   c:'Telok Blangah Crescent Food Centre',a:'Telok Blangah',lat:1.27440, lng:103.82150 },
+  { f:'char-kway-teow', n:'Guan Kee Fried Kway Teow',         c:'Ghim Moh Market & Food Centre',     a:'Ghim Moh',     lat:1.31130, lng:103.78860 },
+  { f:'char-kway-teow', n:'Meng Kee Fried Kway Teow',         c:'Golden Mile Food Centre',           a:'Kallang',      lat:1.30250, lng:103.86300 },
+  { f:'char-kway-teow', n:'Armenian Street Char Kway Teow',   c:'Clementi 448 Market & Food Centre', a:'Clementi',     lat:1.31510, lng:103.76500 },
+  { f:'char-kway-teow', n:'Ah Hwee Fried Kway Teow',          c:'Bedok Interchange Hawker Centre',   a:'Bedok',        lat:1.32430, lng:103.92980 },
+  { f:'char-kway-teow', n:'Round Market Char Kway Teow',      c:'Tampines Round Market',             a:'Tampines',     lat:1.35280, lng:103.94300 },
+  { f:'char-kway-teow', n:'628 Fried Kway Teow',              c:'Blk 628 Ang Mo Kio Market',         a:'Ang Mo Kio',   lat:1.37000, lng:103.84700 },
+  { f:'char-kway-teow', n:'Yishun Park Char Kway Teow',       c:'Yishun Park Hawker Centre',         a:'Yishun',       lat:1.42490, lng:103.83550 },
+  { f:'char-kway-teow', n:'Taman Jurong Char Kway Teow',      c:'Taman Jurong Market & Food Centre', a:'Jurong West',  lat:1.33480, lng:103.72050 },
+
+  /* ----- Roti Prata ----- */
+  { f:'roti-prata', n:"Mr & Mrs Mohgan's Super Crispy Prata", c:'300 Joo Chiat Road',                a:'Joo Chiat',     lat:1.31480, lng:103.90000 },
+  { f:'roti-prata', n:'Springleaf Prata Place',               c:'1 Thong Soon Avenue',               a:'Upper Thomson', lat:1.39360, lng:103.83300 },
+  { f:'roti-prata', n:'The Roti Prata House',                 c:'246M Upper Thomson Road',           a:'Upper Thomson', lat:1.36000, lng:103.83300 },
+  { f:'roti-prata', n:'Sin Ming Roti Prata',                  c:'Jin Fa Kopitiam, Blk 24 Sin Ming Road', a:'Bishan',    lat:1.35730, lng:103.83600 },
+  { f:'roti-prata', n:'Casuarina Curry',                      c:'136 Casuarina Road',                a:'Upper Thomson', lat:1.37000, lng:103.83350 },
+  { f:'roti-prata', n:'Thasevi Famous Jalan Kayu Prata',      c:'237 Jalan Kayu',                    a:'Seletar',       lat:1.39200, lng:103.87200 },
+  { f:'roti-prata', n:'Al-Azhar Eating Restaurant',           c:'11 Cheong Chin Nam Road',           a:'Bukit Timah',   lat:1.33800, lng:103.77800 },
+  { f:'roti-prata', n:'Singapore Zam Zam',                    c:'697 North Bridge Road',             a:'Kampong Glam',  lat:1.30220, lng:103.85800 },
+  { f:'roti-prata', n:'Prata Wala',                           c:'Jurong Point, #03-27',              a:'Jurong West',   lat:1.34000, lng:103.70600 },
+  { f:'roti-prata', n:"Niqqi's The Cheese Prata Shop",        c:'2 Rangoon Road',                    a:'Little India',  lat:1.31600, lng:103.85400 },
+  { f:'roti-prata', n:'Simpang Bedok Prata',                  c:'Simpang Bedok, Jalan Bilal',        a:'Bedok',         lat:1.33280, lng:103.93340 },
+  { f:'roti-prata', n:'Tampines Prata Corner',                c:'Tampines Round Market',             a:'Tampines',      lat:1.35280, lng:103.94300 },
+  { f:'roti-prata', n:'Chong Pang Prata',                     c:'Chong Pang Market & Food Centre',   a:'Yishun',        lat:1.43050, lng:103.82860 },
+  { f:'roti-prata', n:'448 Clementi Prata',                   c:'Clementi 448 Market & Food Centre', a:'Clementi',      lat:1.31510, lng:103.76500 },
+  { f:'roti-prata', n:'Kampung Admiralty Prata',              c:'Kampung Admiralty Hawker Centre',   a:'Woodlands',     lat:1.44040, lng:103.80050 },
+
+  /* ----- Mala Xiang Guo ----- */
+  { f:'mala', n:'Ri Ri Hong Mala Xiang Guo',  c:"People's Park Food Centre, #01-58", a:'Chinatown',   lat:1.28510, lng:103.84300 },
+  { f:'mala', n:'Fire Pot Mala Xiang Guo',    c:'Chinatown Complex Food Centre',     a:'Chinatown',   lat:1.28230, lng:103.84360 },
+  { f:'mala', n:'Mala Chilli Pot',            c:'Tekka Centre Food Court',           a:'Little India',lat:1.30640, lng:103.85020 },
+  { f:'mala', n:'Lao Jiang Mala Xiang Guo',   c:'Blk 505 Jurong West St 52',         a:'Jurong East', lat:1.34870, lng:103.73100 },
+  { f:'mala', n:'Boon Lay Mala Hot Pot',      c:'Boon Lay Place Food Village',       a:'Jurong West', lat:1.34650, lng:103.71400 },
+  { f:'mala', n:'Yi Jia Mala Xiang Guo',      c:'Tampines Street 11 Food Centre',    a:'Tampines',    lat:1.34800, lng:103.94000 },
+  { f:'mala', n:'Jiu Jiu Mala',               c:'Blk 628 Ang Mo Kio Market',         a:'Ang Mo Kio',  lat:1.37000, lng:103.84700 },
+  { f:'mala', n:'Yishun Park Mala Xiang Guo', c:'Yishun Park Hawker Centre',         a:'Yishun',      lat:1.42490, lng:103.83550 },
+  { f:'mala', n:'Hong Xing Mala',             c:'Blk 22 Sin Ming Road Market',       a:'Bishan',      lat:1.35050, lng:103.84860 },
+  { f:'mala', n:'Mala Kitchen',               c:'Blk 105 Hougang Avenue 1',          a:'Hougang',     lat:1.36070, lng:103.88630 },
+  { f:'mala', n:'Sichuan Mala Xiang Guo',     c:'Clementi 448 Market & Food Centre', a:'Clementi',    lat:1.31510, lng:103.76500 },
+  { f:'mala', n:'Mala Legend',                c:'Bedok Interchange Hawker Centre',   a:'Bedok',       lat:1.32430, lng:103.92980 },
+  { f:'mala', n:'Mala Hub',                   c:'Marsiling Mall Hawker Centre',      a:'Woodlands',   lat:1.43620, lng:103.77640 },
+  { f:'mala', n:'Shu Xiang Mala',             c:'Golden Mile Food Centre',           a:'Kallang',     lat:1.30250, lng:103.86300 },
+  { f:'mala', n:'Punggol Mala Xiang Guo',     c:'Punggol Place Hawker Centre',       a:'Punggol',     lat:1.40440, lng:103.90950 },
+
+  /* ----- Hokkien Mee ----- */
+  { f:'hokkien-mee', n:'Nam Sing Hokkien Fried Mee',        c:'Old Airport Road Food Centre',    a:'Geylang',          lat:1.30830, lng:103.88560 },
+  { f:'hokkien-mee', n:'Geylang Lor 29 Fried Hokkien Mee',  c:'396 East Coast Road',             a:'Katong',           lat:1.30570, lng:103.90520 },
+  { f:'hokkien-mee', n:'Swee Guan Hokkien Mee',             c:'549 Geylang Road, Lor 29',        a:'Geylang',          lat:1.31550, lng:103.88840 },
+  { f:'hokkien-mee', n:'Hong Heng Fried Sotong Prawn Mee',  c:'Tiong Bahru Market, #02-01',      a:'Tiong Bahru',      lat:1.28490, lng:103.83250 },
+  { f:'hokkien-mee', n:'Come Daily Fried Hokkien Prawn Mee',c:'Blk 127 Lor 1 Toa Payoh',         a:'Toa Payoh',        lat:1.33480, lng:103.85360 },
+  { f:'hokkien-mee', n:'Kim Keat Hokkien Mee',              c:'Blk 92 Lorong 4 Toa Payoh',       a:'Toa Payoh',        lat:1.33570, lng:103.85600 },
+  { f:'hokkien-mee', n:'Ah Hock Fried Hokkien Noodles',     c:'Chomp Chomp Food Centre',         a:'Serangoon Gardens',lat:1.36400, lng:103.86570 },
+  { f:'hokkien-mee', n:'You Fu Fried Hokkien Prawn Mee',    c:'Bedok Interchange Hawker Centre', a:'Bedok',            lat:1.32430, lng:103.92980 },
+  { f:'hokkien-mee', n:'Singapore Fried Hokkien Mee',       c:'Blk 505 Jurong West St 52',       a:'Jurong East',      lat:1.34870, lng:103.73100 },
+  { f:'hokkien-mee', n:'Chong Pang Hokkien Mee',            c:'Chong Pang Market & Food Centre', a:'Yishun',           lat:1.43050, lng:103.82860 },
+  { f:'hokkien-mee', n:'Tampines Hokkien Mee',              c:'Tampines Round Market',           a:'Tampines',         lat:1.35280, lng:103.94300 },
+  { f:'hokkien-mee', n:'Bukit Timah Hokkien Mee',           c:'Bukit Timah Market & Food Centre',a:'Bukit Timah',      lat:1.33870, lng:103.77660 },
+  { f:'hokkien-mee', n:'Hainan Fried Hokkien Mee',          c:'Pasir Ris Central Hawker Centre', a:'Pasir Ris',        lat:1.37260, lng:103.94940 },
+  { f:'hokkien-mee', n:'Alexandra Hokkien Mee',             c:'Alexandra Village Food Centre',   a:'Alexandra',        lat:1.28740, lng:103.80500 },
+
+  /* ----- Kaya Toast ----- */
+  { f:'kaya-toast', n:'Ya Kun Kaya Toast',            c:'Far East Square, #01-01',           a:'Downtown',   lat:1.28500, lng:103.84750 },
+  { f:'kaya-toast', n:'Killiney Kopitiam',            c:'67 Killiney Road',                  a:'Orchard',    lat:1.30020, lng:103.83850 },
+  { f:'kaya-toast', n:'Chin Mee Chin Confectionery',  c:'204 East Coast Road',               a:'Katong',     lat:1.30570, lng:103.90500 },
+  { f:'kaya-toast', n:'Tong Ah Eating House',         c:'35 Keong Saik Road',                a:'Chinatown',  lat:1.28050, lng:103.84050 },
+  { f:'kaya-toast', n:'Heap Seng Leong',              c:'Blk 10 North Bridge Road',          a:'Jalan Besar',lat:1.30800, lng:103.86200 },
+  { f:'kaya-toast', n:'Ah Seng Hai Nam Coffee',       c:'Amoy Street Food Centre, #02-95',   a:'Downtown',   lat:1.27930, lng:103.84650 },
+  { f:'kaya-toast', n:'Good Morning Nanyang Café',    c:'Chinatown Point, #01-K1',           a:'Chinatown',  lat:1.28400, lng:103.84500 },
+  { f:'kaya-toast', n:'Toast Box',                    c:'Jurong Point, #B1-50',              a:'Jurong West',lat:1.34000, lng:103.70600 },
+  { f:'kaya-toast', n:'Wang Lai Kopitiam',            c:'Blk 22 Sin Ming Road Market',       a:'Bishan',     lat:1.35050, lng:103.84860 },
+  { f:'kaya-toast', n:'628 Traditional Kopi & Toast', c:'Blk 628 Ang Mo Kio Market',         a:'Ang Mo Kio', lat:1.37000, lng:103.84700 },
+  { f:'kaya-toast', n:'Nanyang Kopi Corner',          c:'Tampines Round Market',             a:'Tampines',   lat:1.35280, lng:103.94300 },
+  { f:'kaya-toast', n:'Yishun Park Kopi & Toast',     c:'Yishun Park Hawker Centre',         a:'Yishun',     lat:1.42490, lng:103.83550 },
+  { f:'kaya-toast', n:'Kampung Admiralty Kopitiam',   c:'Kampung Admiralty Hawker Centre',   a:'Woodlands',  lat:1.44040, lng:103.80050 },
+  { f:'kaya-toast', n:'448 Clementi Kopi & Toast',    c:'Clementi 448 Market & Food Centre', a:'Clementi',   lat:1.31510, lng:103.76500 },
+  { f:'kaya-toast', n:'Pasir Ris Kopi Stop',          c:'Pasir Ris Central Hawker Centre',   a:'Pasir Ris',  lat:1.37260, lng:103.94940 }
+];
+
+/* Planning areas for the manual picker */
+const AREAS = [
+  { n:'Downtown / CBD',       lat:1.28400, lng:103.85100 },
+  { n:'Orchard',              lat:1.30480, lng:103.83200 },
+  { n:'Chinatown',            lat:1.28300, lng:103.84400 },
+  { n:'Little India',         lat:1.30640, lng:103.85020 },
+  { n:'Tiong Bahru',          lat:1.28620, lng:103.82700 },
+  { n:'Toa Payoh',            lat:1.33430, lng:103.84970 },
+  { n:'Bishan',               lat:1.35070, lng:103.84880 },
+  { n:'Ang Mo Kio',           lat:1.36990, lng:103.84950 },
+  { n:'Serangoon',            lat:1.34980, lng:103.87300 },
+  { n:'Hougang',              lat:1.37120, lng:103.89270 },
+  { n:'Punggol',              lat:1.40520, lng:103.90200 },
+  { n:'Sengkang',             lat:1.39160, lng:103.89550 },
+  { n:'Yishun',               lat:1.42940, lng:103.83500 },
+  { n:'Woodlands',            lat:1.43820, lng:103.78900 },
+  { n:'Bukit Panjang',        lat:1.37740, lng:103.77190 },
+  { n:'Bukit Timah',          lat:1.33540, lng:103.77660 },
+  { n:'Clementi',             lat:1.31510, lng:103.76500 },
+  { n:'Jurong East',          lat:1.33290, lng:103.74240 },
+  { n:'Jurong West',          lat:1.34040, lng:103.70900 },
+  { n:'Queenstown',           lat:1.29420, lng:103.80600 },
+  { n:'Geylang',              lat:1.31430, lng:103.89270 },
+  { n:'Katong / Joo Chiat',   lat:1.30650, lng:103.90200 },
+  { n:'Marine Parade',        lat:1.30200, lng:103.90500 },
+  { n:'Bedok',                lat:1.32400, lng:103.92970 },
+  { n:'Tampines',             lat:1.35360, lng:103.94500 },
+  { n:'Pasir Ris',            lat:1.37210, lng:103.94930 },
+  { n:'Changi Village',       lat:1.38930, lng:103.98760 },
+  { n:'HarbourFront',         lat:1.26460, lng:103.82200 }
+];
+
+const DEFAULT_LOC = { lat:1.30480, lng:103.83200, label:'Orchard', exact:false };
+const SG_BOUNDS = { minLat:1.13, maxLat:1.50, minLng:103.58, maxLng:104.13 };
+
+/* ============================================================
+   3. Helpers
+   ============================================================ */
+const $ = (sel) => document.querySelector(sel);
+const TAU = Math.PI * 2;
+const SEG = TAU / FOODS.length;
+
+function haversine(a, b) {
+  const R = 6371000, toRad = (d) => d * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+  const s = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+function fmtDistance(m) {
+  if (m < 950) return `${Math.max(50, Math.round(m / 10) * 10)} m away`;
+  return `${(m / 1000).toFixed(1)} km away`;
+}
+
+function travelTime(m) {
+  if (m < 950) return `≈ ${Math.max(1, Math.round(m / 80))} min walk`;
+  return `≈ ${Math.max(2, Math.round(m / 450))} min drive`;
+}
+
+function nearestStalls(foodId, origin, k = 3) {
+  return STALLS
+    .filter((s) => s.f === foodId)
+    .map((s) => ({ ...s, dist: haversine(origin, s) }))
+    .sort((a, b) => a.dist - b.dist)
+    .slice(0, k);
+}
+
+function nearestAreaName(loc) {
+  let best = AREAS[0], bestD = Infinity;
+  for (const a of AREAS) {
+    const d = haversine(loc, a);
+    if (d < bestD) { bestD = d; best = a; }
+  }
+  return best.n;
+}
+
+function inSingapore(loc) {
+  return loc.lat >= SG_BOUNDS.minLat && loc.lat <= SG_BOUNDS.maxLat
+      && loc.lng >= SG_BOUNDS.minLng && loc.lng <= SG_BOUNDS.maxLng;
+}
+
+function buzz(pattern) {
+  if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch (_) {} }
+}
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+  ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+/* ============================================================
+   4. State
+   ============================================================ */
+let userLoc = { ...DEFAULT_LOC };
+let rotation = -Math.PI / 2;
+let spinning = false;
+
+/* ============================================================
+   5. Wheel rendering
+   ============================================================ */
+const canvas = $('#wheel');
+const ctx = canvas.getContext('2d');
+let size = 320;
+
+function resizeCanvas() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const rect = canvas.getBoundingClientRect();
+  size = Math.max(200, Math.round(rect.width));
+  canvas.width = Math.round(size * dpr);
+  canvas.height = Math.round(size * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  render();
+}
+
+/** Break a long label into at most two balanced lines. */
+function wrapLabel(name) {
+  if (name.length <= 9 || !name.includes(' ')) return [name];
+  const words = name.split(' ');
+  let best = 1, bestDiff = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const diff = Math.abs(words.slice(0, i).join(' ').length - words.slice(i).join(' ').length);
+    if (diff < bestDiff) { bestDiff = diff; best = i; }
+  }
+  return [words.slice(0, best).join(' '), words.slice(best).join(' ')];
+}
+
+function render() {
+  const cx = size / 2, cy = size / 2, r = size / 2 - 2;
+  ctx.clearRect(0, 0, size, size);
+
+  for (let i = 0; i < FOODS.length; i++) {
+    const food = FOODS[i];
+    const a0 = rotation + i * SEG;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, a0, a0 + SEG);
+    ctx.closePath();
+    ctx.fillStyle = food.color;
+    ctx.fill();
+    ctx.lineWidth = Math.max(2, r * 0.016);
+    ctx.strokeStyle = '#FFFBF5';
+    ctx.stroke();
+
+    // Labels: on the left half of the wheel, rotate an extra 180° and mirror the
+    // anchor so the text stays upright instead of reading upside-down.
+    const mid = a0 + SEG / 2;
+    const flip = Math.cos(mid) < 0;
+    const dir = flip ? -1 : 1;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(flip ? mid + Math.PI : mid);
+    ctx.textAlign = flip ? 'left' : 'right';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,.32)';
+    ctx.shadowBlur = Math.max(2, r * 0.018);
+    ctx.shadowOffsetY = 1;
+    ctx.fillStyle = '#fff';
+
+    const emojiSize = Math.round(r * 0.125);
+    ctx.font = `${emojiSize}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+    ctx.fillText(food.emoji, dir * (r - r * 0.07), 0);
+
+    const textEdge = r - r * 0.07 - emojiSize - r * 0.045;
+    const lines = wrapLabel(food.name);
+
+    // Shrink to fit so no label ever runs under the centre hub.
+    const maxTextW = textEdge - r * 0.21;
+    let fs = Math.round(r * 0.082);
+    const setFont = () => { ctx.font = `800 ${fs}px "Plus Jakarta Sans",system-ui,sans-serif`; };
+    const widest = () => Math.max(...lines.map((l) => ctx.measureText(l).width));
+    setFont();
+    while (fs > 8 && widest() > maxTextW) { fs -= 1; setFont(); }
+
+    const lh = fs * 1.08;
+    const startY = -((lines.length - 1) * lh) / 2;
+    lines.forEach((line, li) => ctx.fillText(line, dir * textEdge, startY + li * lh));
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.17, 0, TAU);
+  ctx.fillStyle = 'rgba(255,251,245,.92)';
+  ctx.fill();
+}
+
+/* ============================================================
+   6. Spin
+   ============================================================ */
+const spinBtn = $('#spinBtn');
+const spinLabel = $('#spinLabel');
+const spinSub = $('#spinSub');
+const hintText = $('#hintText');
+const resultEl = $('#result');
+
+const SPIN_HYPE = ['Steady!', 'Wah lao!', 'Here we go!', 'Chiong ah!', 'So hungry!'];
+
+function winnerIndex() {
+  const norm = ((Math.PI * 1.5 - rotation) % TAU + TAU) % TAU;
+  return Math.floor(norm / SEG) % FOODS.length;
+}
+
+function spin() {
+  if (spinning) return;
+  spinning = true;
+  spinBtn.disabled = true;
+  spinBtn.classList.remove('hub-idle');
+  spinLabel.textContent = '…';
+  spinSub.textContent = SPIN_HYPE[Math.floor(Math.random() * SPIN_HYPE.length)];
+  hintText.textContent = 'Spinning… steady lah, wait ah 🌀';
+  resultEl.classList.add('hidden');
+  resultEl.innerHTML = '';
+  buzz(12);
+
+  const start = rotation;
+  const extra = TAU * (5 + Math.random() * 3) + Math.random() * TAU;
+  const duration = 4400 + Math.random() * 900;
+  const t0 = performance.now();
+  let lastTick = -1;
+
+  function frame(now) {
+    const t = Math.min(1, (now - t0) / duration);
+    rotation = start + extra * (1 - Math.pow(1 - t, 4));
+    render();
+
+    const tick = Math.floor((rotation - start) / SEG);
+    if (tick !== lastTick) { lastTick = tick; if (t > 0.55) buzz(5); }
+
+    if (t < 1) requestAnimationFrame(frame);
+    else finishSpin();
+  }
+  requestAnimationFrame(frame);
+}
+
+function finishSpin() {
+  rotation = ((rotation % TAU) + TAU) % TAU;
+  render();
+  spinning = false;
+  spinBtn.disabled = false;
+  spinBtn.classList.add('hub-idle');
+  spinLabel.textContent = 'AGAIN';
+  spinSub.textContent = 'one more?';
+  hintText.textContent = 'Not happy? Spin again — nobody is counting. 🙈';
+
+  buzz([30, 40, 90]);
+  showResult(FOODS[winnerIndex()]);
+  burstConfetti();
+}
+
+spinBtn.addEventListener('click', spin);
+
+/* ============================================================
+   7. Result card
+   ============================================================ */
+const MEDALS = ['🥇', '🥈', '🥉'];
+
+function directionsUrl(stall) {
+  const mode = stall.dist < 1500 ? 'walking' : 'driving';
+  let url = `https://www.google.com/maps/dir/?api=1&destination=${stall.lat},${stall.lng}&travelmode=${mode}`;
+  if (userLoc.exact) url += `&origin=${userLoc.lat},${userLoc.lng}`;
+  return url;
+}
+
+function showResult(food) {
+  const picks = nearestStalls(food.id, userLoc, 3);
+
+  const list = picks.map((s, i) => `
+    <li class="flex items-start gap-3 rounded-2xl border border-chilli-100/70 bg-white p-3.5 shadow-[0_4px_14px_-8px_rgba(138,0,20,.35)]">
+      <span class="mt-0.5 text-xl leading-none">${MEDALS[i] || '📍'}</span>
+      <div class="min-w-0 flex-1">
+        <p class="clamp2 text-[15px] font-extrabold leading-snug text-kopi-800">${esc(s.n)}</p>
+        <p class="mt-0.5 clamp2 text-[12.5px] font-medium leading-snug text-kopi-700/65">${esc(s.c)}</p>
+        <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <span class="rounded-full bg-chilli-50 px-2 py-0.5 text-[11px] font-extrabold text-chilli-600">${fmtDistance(s.dist)}</span>
+          <span class="rounded-full bg-kaya-400/20 px-2 py-0.5 text-[11px] font-bold text-sambal-600">${travelTime(s.dist)}</span>
+          <span class="rounded-full bg-pandan-500/10 px-2 py-0.5 text-[11px] font-bold text-pandan-500">${esc(s.a)}</span>
+        </div>
+      </div>
+      <a href="${directionsUrl(s)}" target="_blank" rel="noopener noreferrer"
+         class="btn-press mt-0.5 flex shrink-0 flex-col items-center gap-0.5 rounded-xl bg-gradient-to-br from-chilli-600 to-sambal-500 px-3 py-2 text-white shadow-[0_6px_14px_-7px_rgba(138,0,20,.9)]"
+         aria-label="Directions to ${esc(s.n)}">
+        <span class="text-base leading-none">🧭</span>
+        <span class="text-[10px] font-extrabold uppercase tracking-wide">Go</span>
+      </a>
+    </li>`).join('');
+
+  resultEl.innerHTML = `
+    <div class="card-pop overflow-hidden rounded-3xl border border-chilli-100 bg-white/95 shadow-[0_18px_40px_-20px_rgba(138,0,20,.6)] backdrop-blur">
+      <div class="bg-gradient-to-br from-chilli-600 via-chilli-500 to-sambal-500 px-5 py-5 text-center text-white">
+        <p class="text-[11px] font-extrabold uppercase tracking-[.18em] text-white/75">Today you makan…</p>
+        <div class="mt-1.5 text-5xl leading-none drop-shadow-lg">${food.emoji}</div>
+        <h2 class="mt-2 font-display text-[2.1rem] leading-none drop-shadow">${esc(food.name)}</h2>
+        <p class="mx-auto mt-2 max-w-[20rem] text-[12.5px] font-medium leading-snug text-white/85">${esc(food.tag)}</p>
+      </div>
+
+      <div class="px-4 pb-4 pt-4">
+        <div class="mb-2.5 flex items-baseline justify-between px-1">
+          <h3 class="shrink-0 text-[13px] font-extrabold uppercase tracking-wide text-kopi-800">Chope your seat here</h3>
+          <span class="truncate pl-2 text-[11px] font-bold text-kopi-700/50">near ${esc(userLoc.short || userLoc.label)}</span>
+        </div>
+        <ul class="stagger space-y-2.5">${list}</ul>
+
+        <div class="mt-4 flex gap-2.5">
+          <button type="button" data-act="respin"
+            class="btn-press flex-1 rounded-2xl bg-kopi-800 px-4 py-3 text-[14px] font-extrabold text-rice-50 shadow-[0_8px_18px_-10px_rgba(54,32,15,.9)]">
+            🎲 Spin again
+          </button>
+          <button type="button" data-act="share"
+            class="btn-press rounded-2xl border-2 border-chilli-100 bg-white px-4 py-3 text-[14px] font-extrabold text-chilli-600">
+            📣 Jio friends
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  resultEl.classList.remove('hidden');
+
+  resultEl.querySelector('[data-act="respin"]').addEventListener('click', () => {
+    document.querySelector('.wheel-stage').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(spin, 320);
+  });
+
+  resultEl.querySelector('[data-act="share"]').addEventListener('click', async () => {
+    const top = picks[0];
+    const text = `Makan Roulette says: ${food.name}! 🎯 Nearest — ${top.n} at ${top.c} (${fmtDistance(top.dist)}). Jio me?`;
+    try {
+      if (navigator.share) await navigator.share({ title: 'Makan Roulette', text });
+      else if (navigator.clipboard) { await navigator.clipboard.writeText(text); toast('Copied! Paste in the group chat 📋'); }
+      else toast(text);
+    } catch (_) { /* user cancelled the share sheet */ }
+  });
+
+  setTimeout(() => resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 420);
+}
+
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'fixed left-1/2 bottom-8 z-[70] -translate-x-1/2 rounded-full bg-kopi-800 px-4 py-2.5 text-center text-[13px] font-bold text-rice-50 shadow-xl';
+  el.style.transition = 'opacity .3s ease, transform .3s ease';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translate(-50%, 10px)'; }, 2000);
+  setTimeout(() => el.remove(), 2400);
+}
+
+/* ============================================================
+   8. Confetti
+   ============================================================ */
+const cc = $('#confetti');
+const cctx = cc.getContext('2d');
+let confettiRAF = null;
+
+function sizeConfetti() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cc.width = Math.round(innerWidth * dpr);
+  cc.height = Math.round(innerHeight * dpr);
+  cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function burstConfetti() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  sizeConfetti();
+
+  const colors = ['#B3001B', '#D7263D', '#F4601F', '#FF8C42', '#FFB400', '#FFD56B', '#2F7D4F', '#FFFFFF'];
+  const originX = innerWidth / 2;
+  const originY = innerHeight * 0.34;
+  const count = innerWidth < 420 ? 110 : 160;
+
+  const particles = Array.from({ length: count }, () => {
+    const angle = (-Math.PI / 2) + (Math.random() - 0.5) * 2.2;
+    const speed = 6 + Math.random() * 11;
+    return {
+      x: originX + (Math.random() - 0.5) * 60,
+      y: originY + (Math.random() - 0.5) * 30,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      w: 5 + Math.random() * 7,
+      h: 8 + Math.random() * 9,
+      rot: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 0.3,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 1
+    };
+  });
+
+  if (confettiRAF) cancelAnimationFrame(confettiRAF);
+  let last = performance.now();
+
+  function step(now) {
+    const dt = Math.min(32, now - last) / 16.67;
+    last = now;
+    cctx.clearRect(0, 0, innerWidth, innerHeight);
+    let alive = 0;
+
+    for (const p of particles) {
+      if (p.life <= 0) continue;
+      p.vy += 0.38 * dt;
+      p.vx *= 0.993;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.rot += p.vr * dt;
+      if (p.y > innerHeight * 0.62) p.life -= 0.016 * dt;
+      if (p.life <= 0 || p.y > innerHeight + 60) { p.life = 0; continue; }
+      alive++;
+
+      cctx.save();
+      cctx.globalAlpha = Math.max(0, p.life);
+      cctx.translate(p.x, p.y);
+      cctx.rotate(p.rot);
+      cctx.fillStyle = p.color;
+      cctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * (0.4 + 0.6 * Math.abs(Math.cos(p.rot))));
+      cctx.restore();
+    }
+
+    if (alive > 0) confettiRAF = requestAnimationFrame(step);
+    else { cctx.clearRect(0, 0, innerWidth, innerHeight); confettiRAF = null; }
+  }
+  confettiRAF = requestAnimationFrame(step);
+}
+
+/* ============================================================
+   9. Location
+   ============================================================ */
+const locLabel = $('#locLabel');
+const locIcon = $('#locIcon');
+
+function setLocation(loc, icon) {
+  userLoc = loc;
+  locLabel.textContent = loc.label;
+  locIcon.textContent = icon || '📍';
+}
+
+function requestGeolocation(userInitiated) {
+  if (!('geolocation' in navigator)) {
+    setLocation({ ...DEFAULT_LOC, label: `${DEFAULT_LOC.label} (default)`, short: DEFAULT_LOC.label }, '🤷');
+    if (userInitiated) toast('Your browser cannot do GPS leh.');
+    return;
+  }
+
+  locLabel.textContent = 'Finding you…';
+  locIcon.textContent = '🛰️';
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      if (!inSingapore(loc)) {
+        setLocation({ ...DEFAULT_LOC, label: 'Orchard — you not in SG leh!', short: 'Orchard' }, '✈️');
+        if (userInitiated) { toast('You seem overseas. Showing Orchard instead ✈️'); closeSheet(); }
+        return;
+      }
+      const area = nearestAreaName(loc);
+      setLocation({ ...loc, label: area, short: area, exact: true }, '📍');
+      if (userInitiated) { toast('Got you! 🎯'); closeSheet(); }
+      refreshResultIfShown();
+    },
+    () => {
+      setLocation({ ...DEFAULT_LOC, label: `${DEFAULT_LOC.label} (tap to change)`, short: DEFAULT_LOC.label }, '🤷');
+      if (userInitiated) toast('Location blocked — pick an area below instead.');
+    },
+    { enableHighAccuracy: true, timeout: 9000, maximumAge: 120000 }
+  );
+}
+
+function refreshResultIfShown() {
+  if (!spinning && !resultEl.classList.contains('hidden')) showResult(FOODS[winnerIndex()]);
+}
+
+/* ============================================================
+   10. Area sheet
+   ============================================================ */
+const sheet = $('#sheet');
+const scrim = $('#scrim');
+
+function openSheet() {
+  sheet.classList.remove('translate-y-full');
+  scrim.classList.remove('opacity-0', 'pointer-events-none');
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet() {
+  sheet.classList.add('translate-y-full');
+  scrim.classList.add('opacity-0', 'pointer-events-none');
+  document.body.style.overflow = '';
+}
+
+$('#locationBtn').addEventListener('click', openSheet);
+$('#sheetClose').addEventListener('click', closeSheet);
+scrim.addEventListener('click', closeSheet);
+$('#gpsBtn').addEventListener('click', () => requestGeolocation(true));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+
+$('#areaGrid').innerHTML = AREAS.map((a, i) => `
+  <button type="button" data-i="${i}"
+    class="chip-area rounded-2xl border border-chilli-100 bg-white px-3 py-2.5 text-left text-[13px] font-bold text-kopi-800 shadow-sm">
+    ${esc(a.n)}
+  </button>`).join('');
+
+$('#areaGrid').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-i]');
+  if (!btn) return;
+  const a = AREAS[Number(btn.dataset.i)];
+  setLocation({ lat: a.lat, lng: a.lng, label: a.n, short: a.n, exact: false }, '🏠');
+  buzz(10);
+  closeSheet();
+  refreshResultIfShown();
+});
+
+/* ============================================================
+   11. Boot
+   ============================================================ */
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { resizeCanvas(); sizeConfetti(); }, 120);
+});
+window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 240));
+
+resizeCanvas();
+sizeConfetti();
+requestGeolocation(false);
+
+/* Re-render once the webfont lands so wheel labels aren't drawn in a fallback. */
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(render).catch(() => {});
+
+})();
+</script>
+</body>
+</html>
