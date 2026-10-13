@@ -14,14 +14,82 @@ no server. Open the file in a browser and it works.
 
 | | |
 |---|---|
-| 🛰️ **Location** | HTML5 Geolocation, with a 28-area manual picker as fallback. Non-SG coordinates are detected and fall back to Orchard. |
-| 🎡 **Wheel** | Canvas wheel of 8 hawker classics, `requestAnimationFrame` spin with quartic easing (~4.5–5.3s) and haptic ticks as segments pass the pointer. |
-| 📍 **Nearby** | 116 curated stalls across the island, ranked by haversine distance from you. |
+| 🛰️ **Location** | HTML5 Geolocation, labelled by **nearest MRT station** (141 stations) with the distance shown. Or search/pick from **142 places** manually, with nickname search ("Bukit Timah" → Beauty World). |
+| 🎡 **Wheel** | Canvas wheel of 16 hawker classics, `requestAnimationFrame` spin with quartic easing (~4.5–5.3s) and haptic ticks as segments pass the pointer. Labels auto-scale to the segment count. |
+| 📍 **Nearby** | 220 curated stalls across the island, ranked by haversine distance from your **exact** coordinates. |
 | 🎉 **Result** | Confetti burst, winning dish, 3 nearest stalls with distance + walk/drive estimate, and a Google Maps directions link. |
 | 📣 **Share** | Web Share API where supported, clipboard fallback. |
 
 On the wheel: Chicken Rice, Laksa, Nasi Lemak, Char Kway Teow, Roti Prata,
-Mala Xiang Guo, Hokkien Mee, Kaya Toast. To add in more as my craving grows or if i am sick of eating the same food.
+Mala Xiang Guo, Hokkien Mee, Kaya Toast, Bak Chor Mee, Satay, Wanton Mee,
+Bak Kut Teh, Fish Soup, Carrot Cake, Yong Tau Foo, Chendol.
+To add in more as my craving grows or if i am sick of eating the same food.
+
+### Adding a dish
+
+Append to `FOODS`, then add stalls for it in `STALLS` with the matching `f:` id:
+
+```js
+{ id:'duck-rice', name:'Duck Rice', emoji:'🦆', color:'#8A0014',
+  tag:'Braised or roasted, sauce until drown.' },
+```
+
+The wheel re-fits itself — `LABEL_SCALE` shrinks the labels as segments get
+narrower, and the shrink-to-fit loop keeps text clear of the hub. Give each new
+dish **at least 3 stalls**, ideally ~10 spread across the island, so the
+nearest-3 lookup works wherever you happen to be standing.
+
+## How "where am I" works
+
+Geolocation gives exact coordinates, which is what stall distances are measured
+from — the label never affects the ranking. But raw coordinates are useless to
+read, so the app names the **nearest MRT station** and shows how far it is:
+
+```
+Outram Park MRT · 460 m away
+```
+
+Earlier versions snapped to the nearest of 28 planning-area centroids, which
+told you "Chinatown" while you were standing in Outram. Stations are ~5× more
+granular, need no API key or network call, and match how people here actually
+describe where they are. Beyond 1.6 km from any station (Changi Village, Lim Chu
+Kang) it falls back to the planning area.
+
+Station coordinates are approximate to the station entrance, good to ~100 m.
+If you want true street-level accuracy, swap `describeLocation()` for
+[OneMap's reverse geocode](https://www.onemap.gov.sg/apidocs/) — it returns road
+name, building and postal code, at the cost of an API token and a network round
+trip.
+
+The manual picker (`PLACES`) is **derived**, not hand-listed: every MRT station,
+plus any planning area more than 1.2 km from a station (currently just Changi
+Village). Add a station to `MRT` and it appears in the picker automatically.
+`PLACE_ALIASES` adds searchable nicknames where the neighbourhood and the
+station go by different names:
+
+```js
+'Beauty World':   ['Bukit Timah', 'Upper Bukit Timah'],
+'Tanjong Katong': ['Katong', 'Joo Chiat'],
+'Raffles Place':  ['CBD', 'Downtown Core'],
+```
+
+## Why directions search by name, not coordinates
+
+`directionsUrl()` sends the venue **name** as a Maps search query rather than a
+`lat,lng` pair. This is deliberate and a little counter-intuitive:
+
+> A bare coordinate carries no name, so Google reverse-geocodes it to whichever
+> building is nearest. `1.28022,103.84477` is ~50 m from Maxwell Food Centre —
+> and resolved to *"MND Building, 5 Maxwell Rd"* across the road. The pin was
+> fine; the label and the walking route were the neighbour's.
+
+Searching `"Jin Hua Fish Head Bee Hoon, Maxwell Food Centre, Singapore"` lets
+Maps resolve its own correctly-pinned place entry. Unit numbers (`#01-77`) are
+stripped first because they derail the search.
+
+The trade-off: a wrongly-spelled stall name sends you to the wrong place, where
+a coordinate would at least have been geographically close. Per-stall precision
+would need a Google **Place ID** for each entry, which means the Places API.
 
 ## Running it
 

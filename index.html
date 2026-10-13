@@ -221,16 +221,27 @@
       <h2 class="font-display text-2xl text-chilli-600">Where you at?</h2>
       <button id="sheetClose" type="button" class="rounded-full px-3 py-1 text-sm font-bold text-kopi-700/50">Close</button>
     </div>
-    <p class="mb-4 text-[13px] font-medium text-kopi-700/60">Use GPS, or just pick your neighbourhood.</p>
+    <p class="mb-4 text-[13px] font-medium text-kopi-700/60">Use GPS, or search any MRT station or area.</p>
 
     <button id="gpsBtn" type="button"
-      class="btn-press mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-chilli-600 to-sambal-500 px-4 py-3.5 text-[15px] font-extrabold text-white shadow-[0_10px_22px_-10px_rgba(138,0,20,.9)]">
+      class="btn-press mb-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-chilli-600 to-sambal-500 px-4 py-3.5 text-[15px] font-extrabold text-white shadow-[0_10px_22px_-10px_rgba(138,0,20,.9)]">
       <span>🛰️</span> Use my current location
     </button>
 
-    <div class="no-scrollbar max-h-[42vh] overflow-y-auto pb-1">
-      <div id="areaGrid" class="grid grid-cols-2 gap-2"></div>
+    <div class="relative mb-3">
+      <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-base">🔎</span>
+      <input id="placeSearch" type="search" inputmode="search" autocomplete="off"
+        enterkeyhint="search" placeholder="Outram, Bedok, Yishun…"
+        aria-label="Search for an MRT station or area"
+        class="w-full rounded-2xl border border-chilli-100 bg-white py-3 pl-11 pr-10 text-[14px] font-semibold text-kopi-800 placeholder:font-medium placeholder:text-kopi-700/35 focus:border-chilli-400 focus:outline-none focus:ring-2 focus:ring-chilli-400/25" />
+      <button id="placeClear" type="button" aria-label="Clear search"
+        class="absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded-full px-2 py-1 text-[13px] font-bold text-kopi-700/40">✕</button>
     </div>
+
+    <div class="no-scrollbar max-h-[40vh] overflow-y-auto overscroll-contain pb-1">
+      <div id="placeList" class="grid grid-cols-2 gap-2"></div>
+    </div>
+    <p id="placeCount" class="pt-2.5 text-center text-[11px] font-semibold text-kopi-700/40"></p>
   </div>
 </div>
 
@@ -249,7 +260,15 @@ const FOODS = [
   { id:'roti-prata',     name:'Roti Prata',      emoji:'🫓', color:'#D7263D', tag:'Kosong, egg, or plaster — dip until shiok.' },
   { id:'mala',           name:'Mala Xiang Guo',  emoji:'🌶️', color:'#FF8C42', tag:'Xiao la? Zhong la? Your tongue, your problem.' },
   { id:'hokkien-mee',    name:'Hokkien Mee',     emoji:'🦐', color:'#F59E00', tag:'Prawn stock, lime, sambal chilli. Damn solid.' },
-  { id:'kaya-toast',     name:'Kaya Toast',      emoji:'☕', color:'#4A2C17', tag:'Kopi-O kosong + soft boiled eggs. Steady breakfast.' }
+  { id:'kaya-toast',     name:'Kaya Toast',      emoji:'☕', color:'#4A2C17', tag:'Kopi-O kosong + soft boiled eggs. Steady breakfast.' },
+  { id:'bak-chor-mee',   name:'Bak Chor Mee',    emoji:'🍲', color:'#9B1B30', tag:'Vinegar, chilli, liver, mushroom. Queue also worth it.' },
+  { id:'satay',          name:'Satay',           emoji:'🍢', color:'#E8590C', tag:'Ten sticks minimum. Peanut gravy no need shy.' },
+  { id:'wanton-mee',     name:'Wanton Mee',      emoji:'🥟', color:'#FFC933', tag:'Dry or soup? Char siew extra, sambal on the side.' },
+  { id:'bak-kut-teh',    name:'Bak Kut Teh',     emoji:'🍖', color:'#3E6B48', tag:'Peppery broth, free refill. Cure for everything.' },
+  { id:'fish-soup',      name:'Fish Soup',       emoji:'🐟', color:'#C62828', tag:'Sliced or fried? Milk or clear? Healthy-ish lah.' },
+  { id:'carrot-cake',    name:'Carrot Cake',     emoji:'🥘', color:'#FF7043', tag:'No carrot inside. White or black, both shiok.' },
+  { id:'yong-tau-foo',   name:'Yong Tau Foo',    emoji:'🥬', color:'#E09F00', tag:'You choose your own adventure. Don’t anyhow pile.' },
+  { id:'chendol',        name:'Chendol',          emoji:'🍧', color:'#5D4037', tag:'Gula melaka, coconut milk, ice. Weather damn hot ah.' }
 ];
 
 /* ============================================================
@@ -387,7 +406,127 @@ const STALLS = [
   { f:'kaya-toast', n:'Yishun Park Kopi & Toast',     c:'Yishun Park Hawker Centre',         a:'Yishun',     lat:1.42490, lng:103.83550 },
   { f:'kaya-toast', n:'Kampung Admiralty Kopitiam',   c:'Kampung Admiralty Hawker Centre',   a:'Woodlands',  lat:1.44040, lng:103.80050 },
   { f:'kaya-toast', n:'448 Clementi Kopi & Toast',    c:'Clementi 448 Market & Food Centre', a:'Clementi',   lat:1.31510, lng:103.76500 },
-  { f:'kaya-toast', n:'Pasir Ris Kopi Stop',          c:'Pasir Ris Central Hawker Centre',   a:'Pasir Ris',  lat:1.37260, lng:103.94940 }
+  { f:'kaya-toast', n:'Pasir Ris Kopi Stop',          c:'Pasir Ris Central Hawker Centre',   a:'Pasir Ris',  lat:1.37260, lng:103.94940 },
+
+  /* ----- Bak Chor Mee ----- */
+  { f:'bak-chor-mee', n:'Hill Street Tai Hwa Pork Noodle', c:'466 Crawford Lane, #01-12',    a:'Kallang',    lat:1.30530, lng:103.86280 },
+  { f:'bak-chor-mee', n:'Tai Wah Pork Noodle',          c:'Hong Lim Market & Food Centre',   a:'Chinatown',  lat:1.28510, lng:103.84650 },
+  { f:'bak-chor-mee', n:'Seng Kee Mushroom Minced Meat Noodle', c:'Serangoon Garden Market', a:'Serangoon Gardens', lat:1.36400, lng:103.86570 },
+  { f:'bak-chor-mee', n:'Ah Kow Mushroom Minced Pork Mee', c:'Hong Lim Market & Food Centre',a:'Chinatown',  lat:1.28510, lng:103.84650 },
+  { f:'bak-chor-mee', n:'Punggol Noodles',              c:'Blk 105 Hougang Avenue 1',        a:'Hougang',    lat:1.36070, lng:103.88630 },
+  { f:'bak-chor-mee', n:'Jiu Jiang Shao La',            c:'Old Airport Road Food Centre',    a:'Geylang',    lat:1.30830, lng:103.88560 },
+  { f:'bak-chor-mee', n:'Bedok Minced Meat Noodle',     c:'Bedok Interchange Hawker Centre', a:'Bedok',      lat:1.32430, lng:103.92980 },
+  { f:'bak-chor-mee', n:'Tampines Bak Chor Mee',        c:'Tampines Round Market',           a:'Tampines',   lat:1.35280, lng:103.94300 },
+  { f:'bak-chor-mee', n:'Clementi Minced Meat Noodle',  c:'Clementi 448 Market & Food Centre',a:'Clementi',  lat:1.31510, lng:103.76500 },
+  { f:'bak-chor-mee', n:'Jurong Bak Chor Mee',          c:'Blk 505 Jurong West St 52',       a:'Jurong East',lat:1.34870, lng:103.73100 },
+  { f:'bak-chor-mee', n:'Yishun Park Pork Noodle',      c:'Yishun Park Hawker Centre',       a:'Yishun',     lat:1.42490, lng:103.83550 },
+  { f:'bak-chor-mee', n:'Marsiling Minced Meat Noodle', c:'Marsiling Mall Hawker Centre',    a:'Woodlands',  lat:1.43620, lng:103.77640 },
+  { f:'bak-chor-mee', n:'Toa Payoh Bak Chor Mee',       c:'Blk 210 Lorong 8 Toa Payoh',      a:'Toa Payoh',  lat:1.34060, lng:103.85680 },
+
+  /* ----- Satay ----- */
+  { f:'satay', n:'Lau Pa Sat Satay Street',       c:'Lau Pa Sat, 18 Raffles Quay',       a:'Downtown',   lat:1.28070, lng:103.85040 },
+  { f:'satay', n:'Chuan Kee Satay',               c:'Old Airport Road Food Centre',      a:'Geylang',    lat:1.30830, lng:103.88560 },
+  { f:'satay', n:'Haron Satay',                   c:'East Coast Lagoon Food Village',    a:'East Coast', lat:1.30730, lng:103.93050 },
+  { f:'satay', n:'Kwong Satay',                   c:'Blk 549 Geylang Road',              a:'Geylang',    lat:1.31550, lng:103.88840 },
+  { f:'satay', n:'Fatman Satay',                  c:'Telok Blangah Crescent Food Centre',a:'Telok Blangah', lat:1.27440, lng:103.82150 },
+  { f:'satay', n:'Alhambra Satay',                c:'East Coast Lagoon Food Village',    a:'East Coast', lat:1.30730, lng:103.93050 },
+  { f:'satay', n:'Chong Pang Satay',              c:'Chong Pang Market & Food Centre',   a:'Yishun',     lat:1.43050, lng:103.82860 },
+  { f:'satay', n:'Tampines Satay Corner',         c:'Tampines Round Market',             a:'Tampines',   lat:1.35280, lng:103.94300 },
+  { f:'satay', n:'Boon Lay Satay',                c:'Boon Lay Place Food Village',       a:'Jurong West',lat:1.34650, lng:103.71400 },
+  { f:'satay', n:'Clementi Satay',                c:'Clementi 448 Market & Food Centre', a:'Clementi',   lat:1.31510, lng:103.76500 },
+  { f:'satay', n:'Ang Mo Kio Satay',              c:'Blk 628 Ang Mo Kio Market',         a:'Ang Mo Kio', lat:1.37000, lng:103.84700 },
+  { f:'satay', n:'Bukit Timah Satay',             c:'Bukit Timah Market & Food Centre',  a:'Bukit Timah',lat:1.33870, lng:103.77660 },
+  { f:'satay', n:'Kampung Admiralty Satay',       c:'Kampung Admiralty Hawker Centre',   a:'Woodlands',  lat:1.44040, lng:103.80050 },
+
+  /* ----- Wanton Mee ----- */
+  { f:'wanton-mee', n:'Eng’s Wantan Noodle',       c:'287 Tanjong Katong Road',           a:'Katong',     lat:1.31200, lng:103.89520 },
+  { f:'wanton-mee', n:'Kok Kee Wanton Noodle',          c:'Lavender Food Square',              a:'Kallang',    lat:1.30750, lng:103.86250 },
+  { f:'wanton-mee', n:'Fei Fei Wanton Mee',             c:'Blk 6 Jalan Bukit Merah',           a:'Bukit Merah',lat:1.28320, lng:103.81770 },
+  { f:'wanton-mee', n:'Hua Kee Hougang Famous Wanton Mee', c:'Blk 105 Hougang Avenue 1',       a:'Hougang',    lat:1.36070, lng:103.88630 },
+  { f:'wanton-mee', n:'Ji Ji Wanton Noodle Specialist', c:'Hong Lim Market & Food Centre',     a:'Chinatown',  lat:1.28510, lng:103.84650 },
+  { f:'wanton-mee', n:'Chef Kang’s Noodle House',  c:'Blk 24 Sin Ming Road',              a:'Bishan',     lat:1.35730, lng:103.83600 },
+  { f:'wanton-mee', n:'Old Airport Wanton Mee',         c:'Old Airport Road Food Centre',      a:'Geylang',    lat:1.30830, lng:103.88560 },
+  { f:'wanton-mee', n:'Tampines Wanton Mee',            c:'Tampines Street 11 Food Centre',    a:'Tampines',   lat:1.34800, lng:103.94000 },
+  { f:'wanton-mee', n:'Bedok Wanton Noodle',            c:'Fengshan Market & Food Centre',     a:'Bedok',      lat:1.33010, lng:103.92980 },
+  { f:'wanton-mee', n:'Jurong Wanton Mee',              c:'Taman Jurong Market & Food Centre', a:'Jurong West',lat:1.33480, lng:103.72050 },
+  { f:'wanton-mee', n:'Yishun Park Wanton Mee',         c:'Yishun Park Hawker Centre',         a:'Yishun',     lat:1.42490, lng:103.83550 },
+  { f:'wanton-mee', n:'Clementi Wanton Noodle',         c:'Clementi 448 Market & Food Centre', a:'Clementi',   lat:1.31510, lng:103.76500 },
+  { f:'wanton-mee', n:'Woodlands Wanton Mee',           c:'Marsiling Mall Hawker Centre',      a:'Woodlands',  lat:1.43620, lng:103.77640 },
+
+  /* ----- Bak Kut Teh ----- */
+  { f:'bak-kut-teh', n:'Founder Bak Kut Teh',         c:'154 Rangoon Road',                  a:'Little India',lat:1.31620, lng:103.85370 },
+  { f:'bak-kut-teh', n:'Song Fa Bak Kut Teh',         c:'11 New Bridge Road',                a:'Clarke Quay', lat:1.28840, lng:103.84700 },
+  { f:'bak-kut-teh', n:'Leon Kee Claypot Bak Kut Teh',c:'321 Joo Chiat Road',                a:'Joo Chiat',   lat:1.31390, lng:103.90070 },
+  { f:'bak-kut-teh', n:'Ng Ah Sio Bak Kut Teh',       c:'208 Rangoon Road',                  a:'Little India',lat:1.31670, lng:103.85440 },
+  { f:'bak-kut-teh', n:'Outram Park Ya Hua Rou Gu Cha', c:'7 Keppel Road, #01-05/07',        a:'Tanjong Pagar',lat:1.27580, lng:103.84160 },
+  { f:'bak-kut-teh', n:'Legendary Bak Kut Teh',       c:'Blk 505 Jurong West St 52',         a:'Jurong East', lat:1.34870, lng:103.73100 },
+  { f:'bak-kut-teh', n:'Hong Ji Claypot Bak Kut Teh', c:'Blk 19 Toa Payoh Lorong 7',         a:'Toa Payoh',   lat:1.33570, lng:103.85600 },
+  { f:'bak-kut-teh', n:'Tampines Bak Kut Teh',        c:'Tampines Round Market',             a:'Tampines',    lat:1.35280, lng:103.94300 },
+  { f:'bak-kut-teh', n:'Bedok Peppery Pork Ribs',     c:'Bedok Interchange Hawker Centre',   a:'Bedok',       lat:1.32430, lng:103.92980 },
+  { f:'bak-kut-teh', n:'Ang Mo Kio Bak Kut Teh',      c:'Blk 628 Ang Mo Kio Market',         a:'Ang Mo Kio',  lat:1.37000, lng:103.84700 },
+  { f:'bak-kut-teh', n:'Yishun Bak Kut Teh',          c:'Chong Pang Market & Food Centre',   a:'Yishun',      lat:1.43050, lng:103.82860 },
+  { f:'bak-kut-teh', n:'Clementi Bak Kut Teh',        c:'Clementi 448 Market & Food Centre', a:'Clementi',    lat:1.31510, lng:103.76500 },
+  { f:'bak-kut-teh', n:'Woodlands Bak Kut Teh',       c:'Kampung Admiralty Hawker Centre',   a:'Woodlands',   lat:1.44040, lng:103.80050 },
+
+  /* ----- Fish Soup ----- */
+  { f:'fish-soup', n:'Han Kee Fish Soup',              c:'Amoy Street Food Centre, #02-129', a:'Downtown',   lat:1.27930, lng:103.84650 },
+  { f:'fish-soup', n:'Jin Hua Fish Head Bee Hoon',     c:'Maxwell Food Centre, #01-77',      a:'Chinatown',  lat:1.28022, lng:103.84477 },
+  { f:'fish-soup', n:'Piao Ji Fish Porridge',          c:'Amoy Street Food Centre',          a:'Downtown',   lat:1.27930, lng:103.84650 },
+  { f:'fish-soup', n:'Xin Yuan Ji Fish Soup',           c:'31 Beach Road, #01-4788',          a:'Kampong Glam',lat:1.29440, lng:103.85790 },
+  { f:'fish-soup', n:'Ka-Soh Fish Soup',               c:'Blk 27 Bukit Merah Lane 1',        a:'Bukit Merah',lat:1.28400, lng:103.81700 },
+  { f:'fish-soup', n:'Tian Wai Tian Fish Head Steamboat', c:'Blk 72 Whampoa Drive',          a:'Balestier',  lat:1.32260, lng:103.85580 },
+  { f:'fish-soup', n:'Old Airport Fish Soup',          c:'Old Airport Road Food Centre',     a:'Geylang',    lat:1.30830, lng:103.88560 },
+  { f:'fish-soup', n:'Tampines Fish Soup',             c:'Tampines Round Market',            a:'Tampines',   lat:1.35280, lng:103.94300 },
+  { f:'fish-soup', n:'Bedok Sliced Fish Soup',         c:'Fengshan Market & Food Centre',    a:'Bedok',      lat:1.33010, lng:103.92980 },
+  { f:'fish-soup', n:'Jurong Fish Soup',               c:'Blk 505 Jurong West St 52',        a:'Jurong East',lat:1.34870, lng:103.73100 },
+  { f:'fish-soup', n:'Yishun Park Fish Soup',          c:'Yishun Park Hawker Centre',        a:'Yishun',     lat:1.42490, lng:103.83550 },
+  { f:'fish-soup', n:'Clementi Fish Soup',             c:'Clementi 448 Market & Food Centre',a:'Clementi',   lat:1.31510, lng:103.76500 },
+  { f:'fish-soup', n:'Hougang Fish Soup',              c:'Blk 105 Hougang Avenue 1',         a:'Hougang',    lat:1.36070, lng:103.88630 },
+
+  /* ----- Carrot Cake ----- */
+  { f:'carrot-cake', n:'He Zhong Carrot Cake',         c:'Bukit Timah Market & Food Centre', a:'Bukit Timah',lat:1.33870, lng:103.77660 },
+  { f:'carrot-cake', n:'Lau Goh Teochew Chye Thow Kway', c:'Zion Riverside Food Centre',     a:'Tiong Bahru',lat:1.29190, lng:103.83180 },
+  { f:'carrot-cake', n:'Fu Ming Cooked Food',          c:'Redhill Food Centre',              a:'Redhill',    lat:1.28690, lng:103.81710 },
+  { f:'carrot-cake', n:'Song Zhou Carrot Cake',        c:'Jalan Besar, Blk 269B Queen St',   a:'Jalan Besar',lat:1.30020, lng:103.85460 },
+  { f:'carrot-cake', n:'Ghim Moh Carrot Cake',         c:'Ghim Moh Market & Food Centre',    a:'Ghim Moh',   lat:1.31130, lng:103.78860 },
+  { f:'carrot-cake', n:'Chey Sua Carrot Cake',         c:'Blk 127 Lorong 1 Toa Payoh',       a:'Toa Payoh',  lat:1.33480, lng:103.85360 },
+  { f:'carrot-cake', n:'Old Airport Carrot Cake',      c:'Old Airport Road Food Centre',     a:'Geylang',    lat:1.30830, lng:103.88560 },
+  { f:'carrot-cake', n:'Bedok Chai Tow Kway',          c:'Bedok Interchange Hawker Centre',  a:'Bedok',      lat:1.32430, lng:103.92980 },
+  { f:'carrot-cake', n:'Tampines Carrot Cake',         c:'Tampines Street 11 Food Centre',   a:'Tampines',   lat:1.34800, lng:103.94000 },
+  { f:'carrot-cake', n:'Jurong Carrot Cake',           c:'Taman Jurong Market & Food Centre',a:'Jurong West',lat:1.33480, lng:103.72050 },
+  { f:'carrot-cake', n:'Yishun Park Carrot Cake',      c:'Yishun Park Hawker Centre',        a:'Yishun',     lat:1.42490, lng:103.83550 },
+  { f:'carrot-cake', n:'Clementi Carrot Cake',         c:'Clementi 448 Market & Food Centre',a:'Clementi',   lat:1.31510, lng:103.76500 },
+  { f:'carrot-cake', n:'Marsiling Carrot Cake',        c:'Marsiling Mall Hawker Centre',     a:'Woodlands',  lat:1.43620, lng:103.77640 },
+
+  /* ----- Yong Tau Foo ----- */
+  { f:'yong-tau-foo', n:'Goldhill Hakka Yong Tau Foo', c:'Chinatown Complex Food Centre',    a:'Chinatown',  lat:1.28230, lng:103.84360 },
+  { f:'yong-tau-foo', n:'Rong Cheng Bee Hoon Yong Tau Foo', c:'Alexandra Village Food Centre',a:'Alexandra', lat:1.28740, lng:103.80500 },
+  { f:'yong-tau-foo', n:'Ampang Niang Tou Fu',         c:'Bugis Junction, #B1-21',           a:'Kampong Glam',lat:1.29930, lng:103.85540 },
+  { f:'yong-tau-foo', n:'Yuan Chun Famous Yong Tau Foo', c:'Chinatown Complex Food Centre',  a:'Chinatown',  lat:1.28230, lng:103.84360 },
+  { f:'yong-tau-foo', n:'Hakka Zhen Yong Tau Foo',     c:'Blk 127 Lorong 1 Toa Payoh',       a:'Toa Payoh',  lat:1.33480, lng:103.85360 },
+  { f:'yong-tau-foo', n:'Old Airport Yong Tau Foo',    c:'Old Airport Road Food Centre',     a:'Geylang',    lat:1.30830, lng:103.88560 },
+  { f:'yong-tau-foo', n:'Bedok Yong Tau Foo',          c:'Bedok Interchange Hawker Centre',  a:'Bedok',      lat:1.32430, lng:103.92980 },
+  { f:'yong-tau-foo', n:'Tampines Yong Tau Foo',       c:'Tampines Round Market',            a:'Tampines',   lat:1.35280, lng:103.94300 },
+  { f:'yong-tau-foo', n:'Jurong Yong Tau Foo',         c:'Blk 505 Jurong West St 52',        a:'Jurong East',lat:1.34870, lng:103.73100 },
+  { f:'yong-tau-foo', n:'Ang Mo Kio Yong Tau Foo',     c:'Blk 628 Ang Mo Kio Market',        a:'Ang Mo Kio', lat:1.37000, lng:103.84700 },
+  { f:'yong-tau-foo', n:'Yishun Park Yong Tau Foo',    c:'Yishun Park Hawker Centre',        a:'Yishun',     lat:1.42490, lng:103.83550 },
+  { f:'yong-tau-foo', n:'Clementi Yong Tau Foo',       c:'Clementi 448 Market & Food Centre',a:'Clementi',   lat:1.31510, lng:103.76500 },
+  { f:'yong-tau-foo', n:'Kampung Admiralty Yong Tau Foo', c:'Kampung Admiralty Hawker Centre',a:'Woodlands', lat:1.44040, lng:103.80050 },
+
+  /* ----- Chendol ----- */
+  { f:'chendol', n:'Old Amoy Chendol',              c:'Chinatown Complex Food Centre',      a:'Chinatown',  lat:1.28230, lng:103.84360 },
+  { f:'chendol', n:'Four Seasons Chendol',          c:'Maxwell Food Centre',                a:'Chinatown',  lat:1.28022, lng:103.84477 },
+  { f:'chendol', n:'Jin Jin Dessert',               c:'Blk 335 Smith Street',               a:'Chinatown',  lat:1.28280, lng:103.84400 },
+  { f:'chendol', n:'Ah Chew Desserts',              c:'1 Liang Seah Street',                a:'Bugis',      lat:1.29860, lng:103.85600 },
+  { f:'chendol', n:'Powerful Chendol',              c:'Old Airport Road Food Centre',       a:'Geylang',    lat:1.30830, lng:103.88560 },
+  { f:'chendol', n:'Hajjah Mona Chendol',           c:'Geylang Serai Market',               a:'Geylang',    lat:1.31710, lng:103.89770 },
+  { f:'chendol', n:'Tiong Bahru Chendol',           c:'Tiong Bahru Market',                 a:'Tiong Bahru',lat:1.28490, lng:103.83250 },
+  { f:'chendol', n:'Bedok Chendol',                 c:'Fengshan Market & Food Centre',      a:'Bedok',      lat:1.33010, lng:103.92980 },
+  { f:'chendol', n:'Tampines Chendol',              c:'Tampines Round Market',              a:'Tampines',   lat:1.35280, lng:103.94300 },
+  { f:'chendol', n:'Jurong Chendol',                c:'Taman Jurong Market & Food Centre',  a:'Jurong West',lat:1.33480, lng:103.72050 },
+  { f:'chendol', n:'Yishun Park Chendol',           c:'Yishun Park Hawker Centre',          a:'Yishun',     lat:1.42490, lng:103.83550 },
+  { f:'chendol', n:'Clementi Chendol',              c:'Clementi 448 Market & Food Centre',  a:'Clementi',   lat:1.31510, lng:103.76500 },
+  { f:'chendol', n:'Woodlands Chendol',             c:'Marsiling Mall Hawker Centre',       a:'Woodlands',  lat:1.43620, lng:103.77640 }
 ];
 
 /* Planning areas for the manual picker */
@@ -422,6 +561,91 @@ const AREAS = [
   { n:'HarbourFront',         lat:1.26460, lng:103.82200 }
 ];
 
+/* MRT/LRT stations used as human-readable landmarks for "where am I".
+   Far more granular than planning areas (~140 points vs 28), works offline, and
+   a station name is how people here actually describe where they are.
+   Coordinates are approximate to the station entrance (good to ~100 m). */
+const MRT = [
+  // North-South Line
+  { n:'Jurong East', lat:1.33340, lng:103.74220 }, { n:'Bukit Batok', lat:1.34900, lng:103.74960 },
+  { n:'Bukit Gombak', lat:1.35880, lng:103.75180 }, { n:'Choa Chu Kang', lat:1.38540, lng:103.74430 },
+  { n:'Yew Tee', lat:1.39750, lng:103.74740 }, { n:'Kranji', lat:1.42520, lng:103.76200 },
+  { n:'Marsiling', lat:1.43270, lng:103.77400 }, { n:'Woodlands', lat:1.43690, lng:103.78650 },
+  { n:'Admiralty', lat:1.44060, lng:103.80090 }, { n:'Sembawang', lat:1.44910, lng:103.82000 },
+  { n:'Canberra', lat:1.44320, lng:103.82960 }, { n:'Yishun', lat:1.42950, lng:103.83500 },
+  { n:'Khatib', lat:1.41720, lng:103.83290 }, { n:'Yio Chu Kang', lat:1.38170, lng:103.84490 },
+  { n:'Ang Mo Kio', lat:1.37000, lng:103.84950 }, { n:'Bishan', lat:1.35090, lng:103.84850 },
+  { n:'Braddell', lat:1.34040, lng:103.84670 }, { n:'Toa Payoh', lat:1.33270, lng:103.84750 },
+  { n:'Novena', lat:1.32040, lng:103.84380 }, { n:'Newton', lat:1.31280, lng:103.83840 },
+  { n:'Orchard', lat:1.30430, lng:103.83180 }, { n:'Somerset', lat:1.30050, lng:103.83860 },
+  { n:'Dhoby Ghaut', lat:1.29900, lng:103.84560 }, { n:'City Hall', lat:1.29310, lng:103.85200 },
+  { n:'Raffles Place', lat:1.28390, lng:103.85150 }, { n:'Marina Bay', lat:1.27630, lng:103.85460 },
+  { n:'Marina South Pier', lat:1.27110, lng:103.86320 },
+  // East-West Line
+  { n:'Pasir Ris', lat:1.37310, lng:103.94930 }, { n:'Tampines', lat:1.35460, lng:103.94350 },
+  { n:'Simei', lat:1.34330, lng:103.95330 }, { n:'Tanah Merah', lat:1.32720, lng:103.94650 },
+  { n:'Bedok', lat:1.32400, lng:103.93000 }, { n:'Kembangan', lat:1.32100, lng:103.91290 },
+  { n:'Eunos', lat:1.31970, lng:103.90320 }, { n:'Paya Lebar', lat:1.31770, lng:103.89250 },
+  { n:'Aljunied', lat:1.31650, lng:103.88260 }, { n:'Kallang', lat:1.31150, lng:103.87140 },
+  { n:'Lavender', lat:1.30720, lng:103.86300 }, { n:'Bugis', lat:1.30050, lng:103.85590 },
+  { n:'Tanjong Pagar', lat:1.27650, lng:103.84570 }, { n:'Outram Park', lat:1.28040, lng:103.83950 },
+  { n:'Tiong Bahru', lat:1.28610, lng:103.82700 }, { n:'Redhill', lat:1.28960, lng:103.81680 },
+  { n:'Queenstown', lat:1.29450, lng:103.80600 }, { n:'Commonwealth', lat:1.30250, lng:103.79830 },
+  { n:'Buona Vista', lat:1.30710, lng:103.79030 }, { n:'Dover', lat:1.31130, lng:103.77860 },
+  { n:'Clementi', lat:1.31500, lng:103.76520 }, { n:'Chinese Garden', lat:1.34240, lng:103.73250 },
+  { n:'Lakeside', lat:1.34430, lng:103.72090 }, { n:'Boon Lay', lat:1.33850, lng:103.70600 },
+  { n:'Pioneer', lat:1.33750, lng:103.69740 }, { n:'Joo Koon', lat:1.32770, lng:103.67840 },
+  { n:'Gul Circle', lat:1.31950, lng:103.66070 }, { n:'Tuas Crescent', lat:1.32100, lng:103.64910 },
+  { n:'Tuas West Road', lat:1.33000, lng:103.63950 }, { n:'Tuas Link', lat:1.34040, lng:103.63660 },
+  { n:'Expo', lat:1.33540, lng:103.96170 }, { n:'Changi Airport', lat:1.35730, lng:103.98840 },
+  // North East Line
+  { n:'HarbourFront', lat:1.26530, lng:103.82200 }, { n:'Chinatown', lat:1.28460, lng:103.84410 },
+  { n:'Clarke Quay', lat:1.28860, lng:103.84660 }, { n:'Little India', lat:1.30670, lng:103.84920 },
+  { n:'Farrer Park', lat:1.31230, lng:103.85420 }, { n:'Boon Keng', lat:1.31950, lng:103.86190 },
+  { n:'Potong Pasir', lat:1.33130, lng:103.86860 }, { n:'Woodleigh', lat:1.33920, lng:103.87080 },
+  { n:'Serangoon', lat:1.34970, lng:103.87360 }, { n:'Kovan', lat:1.36010, lng:103.88500 },
+  { n:'Hougang', lat:1.37140, lng:103.89240 }, { n:'Buangkok', lat:1.38280, lng:103.89290 },
+  { n:'Sengkang', lat:1.39170, lng:103.89530 }, { n:'Punggol', lat:1.40530, lng:103.90240 },
+  // Circle Line
+  { n:'Bras Basah', lat:1.29680, lng:103.85080 }, { n:'Esplanade', lat:1.29330, lng:103.85550 },
+  { n:'Promenade', lat:1.29320, lng:103.86130 }, { n:'Nicoll Highway', lat:1.29980, lng:103.86370 },
+  { n:'Stadium', lat:1.30290, lng:103.87530 }, { n:'Mountbatten', lat:1.30630, lng:103.88240 },
+  { n:'Dakota', lat:1.30820, lng:103.88840 }, { n:'MacPherson', lat:1.32660, lng:103.89000 },
+  { n:'Tai Seng', lat:1.33560, lng:103.88800 }, { n:'Bartley', lat:1.34220, lng:103.87980 },
+  { n:'Lorong Chuan', lat:1.35160, lng:103.86400 }, { n:'Marymount', lat:1.34910, lng:103.83950 },
+  { n:'Caldecott', lat:1.33770, lng:103.83950 }, { n:'Botanic Gardens', lat:1.32230, lng:103.81540 },
+  { n:'Farrer Road', lat:1.31740, lng:103.80730 }, { n:'Holland Village', lat:1.31200, lng:103.79610 },
+  { n:'one-north', lat:1.29950, lng:103.78740 }, { n:'Kent Ridge', lat:1.29340, lng:103.78450 },
+  { n:'Haw Par Villa', lat:1.28230, lng:103.78200 }, { n:'Pasir Panjang', lat:1.27610, lng:103.79140 },
+  { n:'Labrador Park', lat:1.27230, lng:103.80270 }, { n:'Telok Blangah', lat:1.27070, lng:103.80970 },
+  { n:'Bayfront', lat:1.28210, lng:103.85910 },
+  // Downtown Line
+  { n:'Bukit Panjang', lat:1.37850, lng:103.76250 }, { n:'Cashew', lat:1.36960, lng:103.76440 },
+  { n:'Hillview', lat:1.36250, lng:103.76750 }, { n:'Beauty World', lat:1.34140, lng:103.77570 },
+  { n:'King Albert Park', lat:1.33570, lng:103.78360 }, { n:'Sixth Avenue', lat:1.33090, lng:103.79680 },
+  { n:'Tan Kah Kee', lat:1.32580, lng:103.80730 }, { n:'Stevens', lat:1.31990, lng:103.82590 },
+  { n:'Rochor', lat:1.30370, lng:103.85250 }, { n:'Downtown', lat:1.27940, lng:103.85290 },
+  { n:'Telok Ayer', lat:1.28220, lng:103.84810 }, { n:'Fort Canning', lat:1.29210, lng:103.84410 },
+  { n:'Bencoolen', lat:1.29850, lng:103.85020 }, { n:'Jalan Besar', lat:1.30530, lng:103.85560 },
+  { n:'Bendemeer', lat:1.31370, lng:103.86230 }, { n:'Geylang Bahru', lat:1.32140, lng:103.87130 },
+  { n:'Mattar', lat:1.32670, lng:103.88320 }, { n:'Ubi', lat:1.32990, lng:103.89950 },
+  { n:'Kaki Bukit', lat:1.33500, lng:103.90890 }, { n:'Bedok North', lat:1.33480, lng:103.91810 },
+  { n:'Bedok Reservoir', lat:1.33650, lng:103.93310 }, { n:'Tampines West', lat:1.34560, lng:103.93850 },
+  { n:'Tampines East', lat:1.35630, lng:103.95450 }, { n:'Upper Changi', lat:1.34170, lng:103.96170 },
+  // Thomson-East Coast Line
+  { n:'Woodlands North', lat:1.44810, lng:103.78580 }, { n:'Woodlands South', lat:1.42720, lng:103.79380 },
+  { n:'Springleaf', lat:1.39750, lng:103.81800 }, { n:'Lentor', lat:1.38470, lng:103.83590 },
+  { n:'Mayflower', lat:1.37180, lng:103.83650 }, { n:'Bright Hill', lat:1.36270, lng:103.83310 },
+  { n:'Upper Thomson', lat:1.35430, lng:103.83250 }, { n:'Napier', lat:1.30720, lng:103.81920 },
+  { n:'Orchard Boulevard', lat:1.30220, lng:103.82430 }, { n:'Great World', lat:1.29380, lng:103.83240 },
+  { n:'Havelock', lat:1.28820, lng:103.83490 }, { n:'Maxwell', lat:1.28080, lng:103.84460 },
+  { n:'Shenton Way', lat:1.27760, lng:103.85020 }, { n:'Gardens by the Bay', lat:1.27930, lng:103.86940 },
+  { n:'Tanjong Rhu', lat:1.29670, lng:103.87570 }, { n:'Katong Park', lat:1.29830, lng:103.88530 },
+  { n:'Tanjong Katong', lat:1.29950, lng:103.89540 }, { n:'Marine Parade', lat:1.30280, lng:103.90520 },
+  { n:'Marine Terrace', lat:1.30640, lng:103.91430 }, { n:'Siglap', lat:1.31130, lng:103.92790 },
+  { n:'Bayshore', lat:1.31510, lng:103.94000 }
+];
+
 const DEFAULT_LOC = { lat:1.30480, lng:103.83200, label:'Orchard', exact:false };
 const SG_BOUNDS = { minLat:1.13, maxLat:1.50, minLng:103.58, maxLng:104.13 };
 
@@ -431,6 +655,10 @@ const SG_BOUNDS = { minLat:1.13, maxLat:1.50, minLng:103.58, maxLng:104.13 };
 const $ = (sel) => document.querySelector(sel);
 const TAU = Math.PI * 2;
 const SEG = TAU / FOODS.length;
+
+/* Wedges get narrower as dishes are added, so labels scale down to match.
+   Add or remove entries in FOODS and the wheel re-fits itself. */
+const LABEL_SCALE = FOODS.length <= 8 ? 1 : FOODS.length <= 12 ? 0.8 : 0.64;
 
 function haversine(a, b) {
   const R = 6371000, toRad = (d) => d * Math.PI / 180;
@@ -466,6 +694,70 @@ function nearestAreaName(loc) {
   }
   return best.n;
 }
+
+/** Nearest MRT station to a point, with its distance in metres. */
+function nearestStation(loc) {
+  let best = MRT[0], bestD = Infinity;
+  for (const s of MRT) {
+    const d = haversine(loc, s);
+    if (d < bestD) { bestD = d; best = s; }
+  }
+  return { station: best, dist: bestD };
+}
+
+/**
+ * Human-readable description of where the user is. Prefers the nearest MRT
+ * station (a landmark, shown with its distance so it never pretends to be your
+ * exact address); falls back to the planning area when no station is close.
+ * Stall ranking always uses the raw coordinates, never this label.
+ */
+function describeLocation(loc) {
+  const { station, dist } = nearestStation(loc);
+  if (dist <= 1600) {
+    const suffix = dist < 120 ? '' : ` · ${fmtDistance(dist).replace(' away', '')}`;
+    return { label: `${station.n}${suffix}`, short: station.n };
+  }
+  const area = nearestAreaName(loc);
+  return { label: `${area} area`, short: area };
+}
+
+/**
+ * Everywhere the user can manually pick from: every MRT station, plus the
+ * handful of planning areas that sit too far from any station to be covered
+ * by one (Changi Village, Lim Chu Kang and friends). Derived rather than
+ * hand-listed, so adding a station to MRT adds it here too.
+ */
+/* Searchable nicknames, because the neighbourhood and the station often go by
+   different names — nobody searching "Bukit Timah" expects "Beauty World". */
+const PLACE_ALIASES = {
+  'Beauty World':   ['Bukit Timah', 'Upper Bukit Timah'],
+  'Boon Lay':       ['Jurong West'],
+  'Tanjong Katong': ['Katong', 'Joo Chiat'],
+  'Raffles Place':  ['CBD', 'Downtown Core'],
+  'Aljunied':       ['Geylang'],
+  'Paya Lebar':     ['Geylang Serai'],
+  'Siglap':         ['East Coast'],
+  'Telok Blangah':  ['Bukit Merah'],
+  'Novena':         ['Balestier'],
+  'Bugis':          ['Kampong Glam', 'Arab Street'],
+  'Serangoon':      ['Serangoon Gardens', 'Chomp Chomp'],
+  'Dhoby Ghaut':    ['Plaza Singapura'],
+  'Chinatown':      ['Kreta Ayer'],
+  'Kent Ridge':     ['NUS'],
+  'one-north':      ['Fusionopolis'],
+  'Changi Airport': ['Jewel'],
+  'Marina Bay':     ['Marina Bay Sands'],
+  'HarbourFront':   ['Sentosa', 'VivoCity'],
+  'Jurong East':    ['JEM', 'Westgate'],
+  'Maxwell':        ['Tanjong Pagar Plaza'],
+  'Queenstown':     ['Mei Ling', 'Margaret Drive']
+};
+
+const PLACES = [
+  ...MRT.map((s) => ({ n: s.n, lat: s.lat, lng: s.lng, kind: 'mrt', alt: PLACE_ALIASES[s.n] || [] })),
+  ...AREAS.filter((a) => nearestStation(a).dist > 1200)
+          .map((a) => ({ n: a.n, lat: a.lat, lng: a.lng, kind: 'area', alt: [] }))
+].sort((a, b) => a.n.localeCompare(b.n));
 
 function inSingapore(loc) {
   return loc.lat >= SG_BOUNDS.minLat && loc.lat <= SG_BOUNDS.maxLat
@@ -549,20 +841,24 @@ function render() {
     ctx.shadowOffsetY = 1;
     ctx.fillStyle = '#fff';
 
-    const emojiSize = Math.round(r * 0.125);
+    const emojiSize = Math.round(r * 0.125 * LABEL_SCALE);
     ctx.font = `${emojiSize}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
     ctx.fillText(food.emoji, dir * (r - r * 0.07), 0);
 
-    const textEdge = r - r * 0.07 - emojiSize - r * 0.045;
+    const textEdge = r - r * 0.07 - emojiSize - r * 0.04;
     const lines = wrapLabel(food.name);
 
-    // Shrink to fit so no label ever runs under the centre hub.
+    // Shrink to fit so no label ever runs under the centre hub, and so the
+    // stacked lines still fit inside the wedge's arc height.
     const maxTextW = textEdge - r * 0.21;
-    let fs = Math.round(r * 0.082);
+    const maxTextH = (TAU * (r * 0.55)) / FOODS.length - 2;
+    let fs = Math.round(r * 0.082 * LABEL_SCALE);
     const setFont = () => { ctx.font = `800 ${fs}px "Plus Jakarta Sans",system-ui,sans-serif`; };
     const widest = () => Math.max(...lines.map((l) => ctx.measureText(l).width));
     setFont();
-    while (fs > 8 && widest() > maxTextW) { fs -= 1; setFont(); }
+    while (fs > 6 && (widest() > maxTextW || lines.length * fs * 1.08 > maxTextH)) {
+      fs -= 1; setFont();
+    }
 
     const lh = fs * 1.08;
     const startY = -((lines.length - 1) * lh) / 2;
@@ -646,9 +942,21 @@ spinBtn.addEventListener('click', spin);
    ============================================================ */
 const MEDALS = ['🥇', '🥈', '🥉'];
 
+/**
+ * Build a Google Maps directions link.
+ *
+ * Deliberately sends the venue NAME as a search query rather than raw
+ * coordinates: a bare lat/lng has no name attached, so Maps reverse-geocodes it
+ * to whatever building is nearest and you end up routed to the neighbour
+ * ("Maxwell Food Centre" became "MND Building, 5 Maxwell Rd"). Searching the
+ * name lets Maps resolve its own, correctly-pinned place entry.
+ */
 function directionsUrl(stall) {
   const mode = stall.dist < 1500 ? 'walking' : 'driving';
-  let url = `https://www.google.com/maps/dir/?api=1&destination=${stall.lat},${stall.lng}&travelmode=${mode}`;
+  // Unit numbers (#01-77) and block prefixes confuse Maps search — drop them.
+  const venue = stall.c.replace(/,?\s*#[\w-]+/g, '').trim();
+  const dest = encodeURIComponent(`${stall.n}, ${venue}, Singapore`);
+  let url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=${mode}`;
   if (userLoc.exact) url += `&origin=${userLoc.lat},${userLoc.lng}`;
   return url;
 }
@@ -840,8 +1148,8 @@ function requestGeolocation(userInitiated) {
         if (userInitiated) { toast('You seem overseas. Showing Orchard instead ✈️'); closeSheet(); }
         return;
       }
-      const area = nearestAreaName(loc);
-      setLocation({ ...loc, label: area, short: area, exact: true }, '📍');
+      const where = describeLocation(loc);
+      setLocation({ ...loc, label: where.label, short: where.short, exact: true }, '📍');
       if (userInitiated) { toast('Got you! 🎯'); closeSheet(); }
       refreshResultIfShown();
     },
@@ -864,6 +1172,9 @@ const sheet = $('#sheet');
 const scrim = $('#scrim');
 
 function openSheet() {
+  // Reset to the full list each time; don't autofocus, or the mobile keyboard
+  // immediately covers the results.
+  if (placeSearch.value) { placeSearch.value = ''; renderPlaces(); }
   sheet.classList.remove('translate-y-full');
   scrim.classList.remove('opacity-0', 'pointer-events-none');
   document.body.style.overflow = 'hidden';
@@ -880,21 +1191,67 @@ scrim.addEventListener('click', closeSheet);
 $('#gpsBtn').addEventListener('click', () => requestGeolocation(true));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
 
-$('#areaGrid').innerHTML = AREAS.map((a, i) => `
-  <button type="button" data-i="${i}"
-    class="chip-area rounded-2xl border border-chilli-100 bg-white px-3 py-2.5 text-left text-[13px] font-bold text-kopi-800 shadow-sm">
-    ${esc(a.n)}
-  </button>`).join('');
+const placeList = $('#placeList');
+const placeSearch = $('#placeSearch');
+const placeClear = $('#placeClear');
+const placeCount = $('#placeCount');
 
-$('#areaGrid').addEventListener('click', (e) => {
-  const btn = e.target.closest('button[data-i]');
+function renderPlaces(query = '') {
+  const term = query.trim().toLowerCase();
+  const matches = (p) => p.n.toLowerCase().includes(term)
+                      || p.alt.some((x) => x.toLowerCase().includes(term));
+  const hits = term ? PLACES.filter(matches) : PLACES;
+
+  placeClear.classList.toggle('hidden', !term);
+
+  if (!hits.length) {
+    placeList.innerHTML = `
+      <p class="col-span-2 py-7 text-center text-[13px] font-semibold text-kopi-700/50">
+        Cannot find "${esc(query.trim())}" leh.<br />
+        <span class="font-medium text-kopi-700/35">Try an MRT station name instead.</span>
+      </p>`;
+    placeCount.textContent = '';
+    return;
+  }
+
+  placeList.innerHTML = hits.map((p) => {
+    // If the hit came from a nickname, show it so "Bukit Timah" -> "Beauty World"
+    // doesn't look like a random result.
+    const via = term && !p.n.toLowerCase().includes(term)
+      ? p.alt.find((x) => x.toLowerCase().includes(term)) : null;
+    return `
+    <button type="button" data-place="${esc(p.n)}"
+      class="chip-area block w-full rounded-2xl border border-chilli-100 bg-white px-3 py-2.5 text-left shadow-sm">
+      <span class="block truncate text-[13px] font-bold text-kopi-800">${esc(p.n)}</span>
+      ${via ? `<span class="block truncate text-[10px] font-semibold text-kopi-700/45">${esc(via)}</span>` : ''}
+    </button>`;
+  }).join('');
+
+  placeCount.textContent = term
+    ? `${hits.length} match${hits.length === 1 ? '' : 'es'}`
+    : `${PLACES.length} places — scroll or search`;
+}
+
+placeSearch.addEventListener('input', () => renderPlaces(placeSearch.value));
+placeClear.addEventListener('click', () => {
+  placeSearch.value = '';
+  renderPlaces();
+  placeSearch.focus();
+});
+
+placeList.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-place]');
   if (!btn) return;
-  const a = AREAS[Number(btn.dataset.i)];
-  setLocation({ lat: a.lat, lng: a.lng, label: a.n, short: a.n, exact: false }, '🏠');
+  const p = PLACES.find((x) => x.n === btn.dataset.place);
+  if (!p) return;
+  setLocation({ lat: p.lat, lng: p.lng, label: p.n, short: p.n, exact: false },
+              p.kind === 'mrt' ? '🚇' : '📍');
   buzz(10);
   closeSheet();
   refreshResultIfShown();
 });
+
+renderPlaces();
 
 /* ============================================================
    11. Boot
