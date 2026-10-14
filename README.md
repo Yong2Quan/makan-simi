@@ -1,12 +1,22 @@
+<div align="center">
+
 # 🎯 Makan Roulette
 
-> *What to makan today?* — Cannot decide? Let the wheel decide
+### *What to makan today?* — Cannot decide? Let the wheel decide
 
-A mobile-first, single-page food picker for Singapore. Spin a wheel of hawker classics,
+A mobile-first food picker for Singapore. Spin a wheel of hawker classics,
 and it tells you the three nearest places to actually eat it.
 
-**[index.html](index.html) is the whole app.** No build step, no dependencies to install,
-no server. Open the file in a browser and it works.
+<br />
+
+### 👉 [**DECIDE NOW!**](https://yong2quan.github.io/makan-simi/) 👈
+
+[![Open the app](https://img.shields.io/badge/Spin%20the%20wheel-yong2quan.github.io%2Fmakan--simi-B3001B?style=for-the-badge&labelColor=F4601F&logo=googlechrome&logoColor=white)](https://yong2quan.github.io/makan-simi/)
+
+**No install, no sign-up.** Opens straight in your phone browser —
+add it to your home screen and it behaves like an app.
+
+</div>
 
 ---
 
@@ -16,9 +26,9 @@ no server. Open the file in a browser and it works.
 |---|---|
 | 🛰️ **Location** | HTML5 Geolocation, labelled by **nearest MRT station** (141 stations) with the distance shown. Or search/pick from **142 places** manually, with nickname search ("Bukit Timah" → Beauty World). |
 | 🎡 **Wheel** | Canvas wheel of 16 hawker classics, `requestAnimationFrame` spin with quartic easing (~4.5–5.3s) and haptic ticks as segments pass the pointer. Labels auto-scale to the segment count. |
-| 📍 **Nearby** | 220 curated stalls across the island, ranked by haversine distance from your **exact** coordinates. |
-| 🎉 **Result** | Confetti burst, winning dish, 3 nearest stalls with distance + walk/drive estimate, and a Google Maps directions link. |
-| 📣 **Share** | Web Share API where supported, clipboard fallback. |
+| 📍 **Nearby** | ~1,200 options across 80 hawker centres, ranked by haversine distance from your **exact** coordinates. Famous stalls are named; the rest point at the centre. |
+| 🎉 **Result** | Confetti burst, winning dish, nearest stalls with distance + walk/drive estimate, and a Google Maps directions link. Starts at 3, expands 3 at a time or jumps to all ~13. |
+| 📣 **Share** | Shareable result links — the recipient opens the same dish and places. Copy link, 8 platform targets, plus the OS share sheet. |
 
 On the wheel: Chicken Rice, Laksa, Nasi Lemak, Char Kway Teow, Roti Prata,
 Mala Xiang Guo, Hokkien Mee, Kaya Toast, Bak Chor Mee, Satay, Wanton Mee,
@@ -38,6 +48,59 @@ The wheel re-fits itself — `LABEL_SCALE` shrinks the labels as segments get
 narrower, and the shrink-to-fit loop keeps text clear of the hub. Give each new
 dish **at least 3 stalls**, ideally ~10 spread across the island, so the
 nearest-3 lookup works wherever you happen to be standing.
+
+## How distances are calculated — and why the data shape matters
+
+`haversine()` gives great-circle distance between two lat/lng points: the
+straight line over the earth's surface. It is **not** walking or driving
+distance, so real travel is always somewhat longer — rivers, expressways and
+the lack of a bridge don't exist to it. For hawker-hunting at 0.5–5 km that
+approximation is fine, and the Google Maps link gives the true route.
+
+The maths was never the weak part. The **data** was. An earlier version hand-listed
+~13 stalls per dish, clustered wherever the famous stalls happen to be, which
+produced absurd results:
+
+```
+CHENDOL from Outram Park (before)        CHENDOL from Outram Park (after)
+ 1.  0.5 km  Old Amoy Chendol             1.  0.5 km  Old Amoy Chendol
+ 4.  0.9 km  Tiong Bahru Chendol          4.  0.7 km  People's Park Food Centre
+ 5.  2.7 km  Ah Chew Desserts             5.  0.7 km  Tanjong Pagar Plaza Market
+ 6.  6.0 km  Powerful Chendol  <- cliff   6.  0.8 km  Amoy Street Food Centre
+```
+
+There are obviously chendol stalls between Chinatown and Geylang — the list just
+didn't contain them. Bukit Panjang had **zero** stalls within 2 km of anything.
+
+The fix was structural rather than typing hundreds more rows. `CENTRES` lists
+~80 hawker centres island-wide; `EVERYDAY` lists the dishes any decent-sized
+centre reliably has (chicken rice, laksa, CKT, chendol…), and `AT_BIG_ONES`
+covers satay/prata/bak kut teh, which really only show up at the larger ones.
+`STALLS` is generated from that and layered under the curated `FAMOUS` list:
+
+```js
+STALLS = FAMOUS + (every CENTRE × its likely dishes, minus duplicates)
+```
+
+Coverage within 2 km, summed over all 16 dishes:
+
+| From | Before | After |
+|---|---:|---:|
+| Outram Park | 30 | 179 |
+| Queenstown | 8 | 100 |
+| Ang Mo Kio | 9 | 99 |
+| Bukit Panjang | **0** | 39 |
+
+### Honesty about the generated entries
+
+Generated rows carry `generic: true` and are **never given an invented stall
+name**. They display the centre ("Amoy Street Food Centre") with the subtitle
+"Chendol stalls · hawker centre", and their Maps link routes to the centre. The
+claim being made is only "this centre has chendol stalls", which is a fair bet
+for any sizeable hawker centre — not "this specific stall exists".
+
+Remaining honest gap: Tuas and the far west industrial estates genuinely have
+almost no hawker centres, so results there really are 10 km+ away.
 
 ## How "where am I" works
 
@@ -73,6 +136,38 @@ station go by different names:
 'Raffles Place':  ['CBD', 'Downtown Core'],
 ```
 
+## Sharing
+
+**Jio Friends** builds a link that encodes the result, so whoever opens it lands
+on the same dish and the same ranked places rather than a blank wheel:
+
+```
+https://yong2quan.github.io/makan-simi/#f=hokkien-mee&lat=1.30480&lng=103.83200&at=Orchard
+```
+
+The state rides in the URL **hash**, so it needs no server — GitHub Pages serves
+one static file and the app rehydrates from the fragment on load. A shared link
+also suppresses the GPS prompt, so the recipient sees the sender's context first.
+
+### What can and can't be in the share sheet
+
+Buttons exist only for platforms publishing a real web-share endpoint —
+WhatsApp, Telegram, Facebook, X, LINE, Reddit, SMS, email.
+
+**Instagram, TikTok and WeChat are deliberately absent.** None of them offer a
+public share URL for arbitrary links: Instagram and TikTok only support sharing
+from inside their own apps, and WeChat requires its JS-SDK running inside
+WeChat's in-app browser. A button for any of them could only open the app's
+homepage, which is worse than no button.
+
+**Frequent contacts cannot be listed by a web page at all.** The faces at the
+top of your OS share dialog come from the operating system, which knows your
+address book and recent chats. A browser page cannot read either — there is no
+API for it, by design. The only route to those contacts is handing off via
+`navigator.share()`, which is what **More apps & contacts** does. That's also
+why the dialog you saw lists your desktop's apps: that dialog *is* Windows',
+not the app's.
+
 ## Why directions search by name, not coordinates
 
 `directionsUrl()` sends the venue **name** as a Maps search query rather than a
@@ -91,7 +186,13 @@ The trade-off: a wrongly-spelled stall name sends you to the wrong place, where
 a coordinate would at least have been geographically close. Per-stall precision
 would need a Google **Place ID** for each entry, which means the Places API.
 
-## Running it
+## Running it locally
+
+Just want to use the app? **[Decide Now!](https://yong2quan.github.io/makan-simi/)** —
+no need to clone anything. The rest of this is for hacking on it.
+
+**[`index.html`](index.html) is the whole app** — no build step, no dependencies,
+no server. Clone and open it:
 
 ```sh
 # Just open it
@@ -109,8 +210,9 @@ npx serve .               # then visit http://localhost:3000
 python -m http.server 8000
 ```
 
-To try it on your phone, deploy anywhere that serves static files (GitHub Pages,
-Netlify, Cloudflare Pages) — it's one file.
+The live copy at **[yong2quan.github.io/makan-simi](https://yong2quan.github.io/makan-simi/)**
+is served over HTTPS, so GPS works there without any of this. Every push to `main`
+redeploys it within a minute.
 
 ## Stack
 

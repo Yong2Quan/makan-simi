@@ -95,6 +95,9 @@
   .card-pop { animation: cardPop .5s cubic-bezier(.2,.9,.3,1.3) both; }
   @keyframes cardPop { from { opacity:0; transform: translateY(22px) scale(.95); } to { opacity:1; transform:none; } }
 
+  /* Newly revealed stall rows slide in; already-visible ones stay put. */
+  .pick-in { animation: slideUp .38s cubic-bezier(.2,.8,.3,1) both; }
+
   .stagger > * { animation: slideUp .45s cubic-bezier(.2,.8,.3,1) both; }
   .stagger > *:nth-child(1) { animation-delay: .10s }
   .stagger > *:nth-child(2) { animation-delay: .19s }
@@ -212,6 +215,35 @@
   </footer>
 </div>
 
+<!-- Share sheet -->
+<div id="shareScrim" class="scrim pointer-events-none fixed inset-0 z-40 bg-kopi-800/50 opacity-0 backdrop-blur-sm"></div>
+<div id="shareSheet" class="sheet fixed inset-x-0 bottom-0 z-50 translate-y-full rounded-t-[28px] bg-rice-50 shadow-[0_-10px_40px_-12px_rgba(138,0,20,.45)]">
+  <div class="mx-auto w-full max-w-md px-5 pb-[calc(1.5rem+var(--safe-b))] pt-3">
+    <div class="mx-auto mb-4 h-1.5 w-11 rounded-full bg-kopi-800/15"></div>
+    <div class="mb-1 flex items-baseline justify-between">
+      <h2 class="font-display text-2xl text-chilli-600">Jio who?</h2>
+      <button id="shareClose" type="button" class="rounded-full px-3 py-1 text-sm font-bold text-kopi-700/50">Close</button>
+    </div>
+    <p class="mb-3 text-[13px] font-medium text-kopi-700/60">
+      They'll open the link and see this exact result — same dish, same places.
+    </p>
+
+    <div id="sharePreview" class="mb-3 rounded-2xl border border-chilli-100 bg-white px-3.5 py-3 text-[12.5px] font-medium leading-snug text-kopi-700/80"></div>
+
+    <button id="copyBtn" type="button"
+      class="btn-press mb-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-chilli-600 to-sambal-500 px-4 py-3.5 text-[15px] font-extrabold text-white shadow-[0_10px_22px_-10px_rgba(138,0,20,.9)]">
+      <span>🔗</span> Copy link
+    </button>
+
+    <div id="shareGrid" class="grid grid-cols-4 gap-2"></div>
+
+    <button id="nativeShareBtn" type="button"
+      class="btn-press mt-3 hidden w-full rounded-2xl border-2 border-chilli-100 bg-white px-4 py-3 text-[14px] font-extrabold text-chilli-600">
+      ⋯ More apps &amp; contacts
+    </button>
+  </div>
+</div>
+
 <!-- Area picker sheet -->
 <div id="scrim" class="scrim pointer-events-none fixed inset-0 z-40 bg-kopi-800/50 opacity-0 backdrop-blur-sm"></div>
 <div id="sheet" class="sheet fixed inset-x-0 bottom-0 z-50 translate-y-full rounded-t-[28px] bg-rice-50 shadow-[0_-10px_40px_-12px_rgba(138,0,20,.45)]">
@@ -275,7 +307,7 @@ const FOODS = [
    2. DATA — curated hawker "database"
    n: stall · c: hawker centre / address · a: planning area
    ============================================================ */
-const STALLS = [
+const FAMOUS = [
   /* ----- Chicken Rice ----- */
   { f:'chicken-rice', n:'Tian Tian Hainanese Chicken Rice', c:'Maxwell Food Centre, #01-10', a:'Chinatown', lat:1.28022, lng:103.84477 },
   { f:'chicken-rice', n:'Ah Tai Hainanese Chicken Rice',    c:'Maxwell Food Centre, #01-07', a:'Chinatown', lat:1.28022, lng:103.84477 },
@@ -529,6 +561,126 @@ const STALLS = [
   { f:'chendol', n:'Woodlands Chendol',             c:'Marsiling Mall Hawker Centre',       a:'Woodlands',  lat:1.43620, lng:103.77640 }
 ];
 
+/* ============================================================
+   2b. Hawker centres — island-wide coverage
+   The famous list above is clustered where the famous stalls are, which left
+   big holes (nothing for chendol between Bugis and Geylang, nothing at all in
+   Bukit Panjang). Rather than invent hundreds of stall names, list the CENTRES
+   and generate the everyday dishes from them: any decent-sized hawker centre
+   has a chicken rice, laksa and chendol stall. Generated entries are marked
+   `generic` and shown by centre name, never with a made-up stall name.
+   `big: 1` marks larger centres that also tend to have satay / prata / BKT.
+   ============================================================ */
+const CENTRES = [
+  // ---- Central / South ----
+  { n:'Maxwell Food Centre',            a:'Chinatown',    lat:1.28022, lng:103.84477, big:1 },
+  { n:'Chinatown Complex Food Centre',  a:'Chinatown',    lat:1.28230, lng:103.84360, big:1 },
+  { n:'Hong Lim Market & Food Centre',  a:'Chinatown',    lat:1.28510, lng:103.84650, big:1 },
+  { n:'Amoy Street Food Centre',        a:'Downtown',     lat:1.27930, lng:103.84650, big:1 },
+  { n:"People's Park Food Centre",      a:'Chinatown',    lat:1.28510, lng:103.84300 },
+  { n:'Lau Pa Sat',                     a:'Downtown',     lat:1.28070, lng:103.85040, big:1 },
+  { n:'Tanjong Pagar Plaza Market',     a:'Tanjong Pagar',lat:1.27560, lng:103.84360 },
+  { n:'Tiong Bahru Market',             a:'Tiong Bahru',  lat:1.28490, lng:103.83250, big:1 },
+  { n:'Zion Riverside Food Centre',     a:'Tiong Bahru',  lat:1.29190, lng:103.83180 },
+  { n:'Havelock Road Cooked Food Centre', a:'Bukit Merah',lat:1.28880, lng:103.83050 },
+  { n:'Beo Crescent Market',            a:'Bukit Merah',  lat:1.28840, lng:103.82820 },
+  { n:'Bukit Merah View Food Centre',   a:'Bukit Merah',  lat:1.28390, lng:103.81770 },
+  { n:'ABC Brickworks Food Centre',     a:'Bukit Merah',  lat:1.28870, lng:103.80570, big:1 },
+  { n:'Alexandra Village Food Centre',  a:'Alexandra',    lat:1.28740, lng:103.80500, big:1 },
+  { n:'Redhill Food Centre',            a:'Redhill',      lat:1.28690, lng:103.81710 },
+  { n:'Mei Ling Street Market',         a:'Queenstown',   lat:1.29600, lng:103.80700 },
+  { n:'Commonwealth Crescent Market',   a:'Queenstown',   lat:1.30210, lng:103.79870 },
+  { n:'Tanglin Halt Market',            a:'Queenstown',   lat:1.29970, lng:103.79580 },
+  { n:'Telok Blangah Crescent Food Centre', a:'Telok Blangah', lat:1.27440, lng:103.82150 },
+  { n:'Pasir Panjang Food Centre',      a:'Pasir Panjang',lat:1.27610, lng:103.79140 },
+  // ---- Central / North ----
+  { n:'Newton Food Centre',             a:'Newton',       lat:1.31200, lng:103.83860, big:1 },
+  { n:'Adam Road Food Centre',          a:'Bukit Timah',  lat:1.32500, lng:103.81420, big:1 },
+  { n:'Tekka Centre',                   a:'Little India', lat:1.30640, lng:103.85020, big:1 },
+  { n:'Golden Mile Food Centre',        a:'Kallang',      lat:1.30250, lng:103.86300 },
+  { n:'Berseh Food Centre',             a:'Jalan Besar',  lat:1.30830, lng:103.85880 },
+  { n:'Pek Kio Market & Food Centre',   a:'Novena',       lat:1.31560, lng:103.85100 },
+  { n:'Whampoa Drive Makan Place',      a:'Balestier',    lat:1.32260, lng:103.85580 },
+  { n:'Blk 127 Toa Payoh Lorong 1',     a:'Toa Payoh',    lat:1.33480, lng:103.85360 },
+  { n:'Blk 93 Toa Payoh Lorong 4',      a:'Toa Payoh',    lat:1.33570, lng:103.85600 },
+  { n:'Blk 210 Toa Payoh Lorong 8',     a:'Toa Payoh',    lat:1.34060, lng:103.85680 },
+  { n:'Blk 22 Sin Ming Road Market',    a:'Bishan',       lat:1.35050, lng:103.84860 },
+  { n:'Blk 511 Bishan Street 13',       a:'Bishan',       lat:1.34960, lng:103.85360 },
+  { n:'Blk 628 Ang Mo Kio Market',      a:'Ang Mo Kio',   lat:1.37000, lng:103.84700, big:1 },
+  { n:'Blk 724 Ang Mo Kio Market',      a:'Ang Mo Kio',   lat:1.37270, lng:103.84530 },
+  { n:'Blk 409 Ang Mo Kio Market',      a:'Ang Mo Kio',   lat:1.36300, lng:103.85600 },
+  { n:'Kebun Baru Market',              a:'Ang Mo Kio',   lat:1.37680, lng:103.83540 },
+  { n:'Mayflower Market',               a:'Ang Mo Kio',   lat:1.37180, lng:103.83650 },
+  { n:'Sembawang Hills Food Centre',    a:'Upper Thomson',lat:1.36710, lng:103.83360 },
+  { n:'Serangoon Garden Market',        a:'Serangoon Gardens', lat:1.36400, lng:103.86570, big:1 },
+  // ---- East ----
+  { n:'Old Airport Road Food Centre',   a:'Geylang',      lat:1.30830, lng:103.88560, big:1 },
+  { n:'Dunman Food Centre',             a:'Katong',       lat:1.30630, lng:103.89420 },
+  { n:'Geylang Serai Market',           a:'Geylang',      lat:1.31710, lng:103.89770, big:1 },
+  { n:'Haig Road Market & Food Centre', a:'Katong',       lat:1.31270, lng:103.89640 },
+  { n:'Blk 79 Circuit Road Food Centre',a:'MacPherson',   lat:1.32560, lng:103.88680 },
+  { n:'Blk 4A Eunos Crescent Market',   a:'Eunos',        lat:1.32000, lng:103.90300 },
+  { n:'Marine Parade Central Market',   a:'Marine Parade',lat:1.30300, lng:103.90550 },
+  { n:'East Coast Lagoon Food Village', a:'East Coast',   lat:1.30730, lng:103.93050, big:1 },
+  { n:'Bedok Interchange Hawker Centre',a:'Bedok',        lat:1.32430, lng:103.92980, big:1 },
+  { n:'Fengshan Market & Food Centre',  a:'Bedok',        lat:1.33010, lng:103.92980, big:1 },
+  { n:'Blk 216 Bedok North Street 1',   a:'Bedok',        lat:1.32750, lng:103.93530 },
+  { n:'Tampines Round Market',          a:'Tampines',     lat:1.35280, lng:103.94300, big:1 },
+  { n:'Tampines Street 11 Food Centre', a:'Tampines',     lat:1.34800, lng:103.94000 },
+  { n:'Pasir Ris Central Hawker Centre',a:'Pasir Ris',    lat:1.37260, lng:103.94940 },
+  { n:'Changi Village Hawker Centre',   a:'Changi',       lat:1.38930, lng:103.98760, big:1 },
+  // ---- North-East ----
+  { n:'Blk 105 Hougang Avenue 1',       a:'Hougang',      lat:1.36070, lng:103.88630 },
+  { n:'Blk 209 Hougang Street 21',      a:'Hougang',      lat:1.36020, lng:103.88530 },
+  { n:'Ci Yuan Hawker Centre',          a:'Hougang',      lat:1.37530, lng:103.87490 },
+  { n:'Blk 304 Anchorvale Link',        a:'Sengkang',     lat:1.39160, lng:103.89550 },
+  { n:'Blk 269 Punggol Field',          a:'Punggol',      lat:1.40440, lng:103.90950 },
+  // ---- North ----
+  { n:'Yishun Park Hawker Centre',      a:'Yishun',       lat:1.42490, lng:103.83550, big:1 },
+  { n:'Chong Pang Market & Food Centre',a:'Yishun',       lat:1.43050, lng:103.82860, big:1 },
+  { n:'Blk 105 Yishun Ring Road',       a:'Yishun',       lat:1.42700, lng:103.83920 },
+  { n:'Kampung Admiralty Hawker Centre',a:'Woodlands',    lat:1.44040, lng:103.80050, big:1 },
+  { n:'Marsiling Mall Hawker Centre',   a:'Woodlands',    lat:1.43620, lng:103.77640 },
+  { n:'Blk 20 Marsiling Lane Market',   a:'Woodlands',    lat:1.43500, lng:103.77800 },
+  // ---- West ----
+  { n:'Clementi 448 Market & Food Centre', a:'Clementi',  lat:1.31510, lng:103.76500, big:1 },
+  { n:'Ghim Moh Market & Food Centre',  a:'Ghim Moh',     lat:1.31130, lng:103.78860, big:1 },
+  { n:'Holland Village Market',         a:'Holland V',    lat:1.31080, lng:103.79540 },
+  { n:'Bukit Timah Market & Food Centre', a:'Bukit Timah',lat:1.33870, lng:103.77660, big:1 },
+  { n:'Blk 347 Bukit Batok West Ave 6', a:'Bukit Batok',  lat:1.34930, lng:103.74410 },
+  { n:'Blk 155 Bukit Batok Street 11',  a:'Bukit Batok',  lat:1.34930, lng:103.75100 },
+  { n:'Yuhua Village Market',           a:'Jurong East',  lat:1.34190, lng:103.73950 },
+  { n:'Blk 505 Jurong West Street 52',  a:'Jurong East',  lat:1.34870, lng:103.73100 },
+  { n:'Taman Jurong Market & Food Centre', a:'Jurong West', lat:1.33480, lng:103.72050, big:1 },
+  { n:'Boon Lay Place Food Village',    a:'Jurong West',  lat:1.34650, lng:103.71400, big:1 },
+  { n:'Blk 265 Bangkit Road Market',    a:'Bukit Panjang',lat:1.37850, lng:103.76250 },
+  { n:'Senja Hawker Centre',            a:'Bukit Panjang',lat:1.38500, lng:103.76200 },
+  { n:'Blk 302 Choa Chu Kang Ave 4',    a:'Choa Chu Kang',lat:1.38540, lng:103.74430 },
+  { n:'Teck Whye Lane Market',          a:'Choa Chu Kang',lat:1.38100, lng:103.75200 }
+];
+
+/* Dishes you can reasonably expect at any decent hawker centre... */
+const EVERYDAY = ['chicken-rice', 'char-kway-teow', 'hokkien-mee', 'laksa', 'bak-chor-mee',
+                  'wanton-mee', 'fish-soup', 'carrot-cake', 'yong-tau-foo', 'chendol',
+                  'nasi-lemak', 'kaya-toast', 'mala'];
+/* ...and the ones that really only turn up at the bigger ones. */
+const AT_BIG_ONES = ['satay', 'roti-prata', 'bak-kut-teh'];
+
+const STALLS = (() => {
+  const all = [...FAMOUS];
+  const seen = new Set(FAMOUS.map((s) => `${s.f}@${s.c}`));
+  for (const c of CENTRES) {
+    const dishes = c.big ? EVERYDAY.concat(AT_BIG_ONES) : EVERYDAY;
+    for (const f of dishes) {
+      const key = `${f}@${c.n}`;
+      if (seen.has(key)) continue;          // a named stall already covers this
+      seen.add(key);
+      all.push({ f, n: null, c: c.n, a: c.a, lat: c.lat, lng: c.lng, generic: true });
+    }
+  }
+  return all;
+})();
+
 /* Planning areas for the manual picker */
 const AREAS = [
   { n:'Downtown / CBD',       lat:1.28400, lng:103.85100 },
@@ -674,7 +826,8 @@ function fmtDistance(m) {
 }
 
 function travelTime(m) {
-  if (m < 950) return `≈ ${Math.max(1, Math.round(m / 80))} min walk`;
+  // 1.6 km is a perfectly ordinary walk here; don't tell people to drive it.
+  if (m < 1600) return `≈ ${Math.max(1, Math.round(m / 80))} min walk`;
   return `≈ ${Math.max(2, Math.round(m / 450))} min drive`;
 }
 
@@ -955,21 +1108,32 @@ function directionsUrl(stall) {
   const mode = stall.dist < 1500 ? 'walking' : 'driving';
   // Unit numbers (#01-77) and block prefixes confuse Maps search — drop them.
   const venue = stall.c.replace(/,?\s*#[\w-]+/g, '').trim();
-  const dest = encodeURIComponent(`${stall.n}, ${venue}, Singapore`);
+  // Generic entries have no stall name — route to the centre, which Maps knows.
+  const dest = encodeURIComponent(`${stall.n ? `${stall.n}, ` : ''}${venue}, Singapore`);
   let url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=${mode}`;
   if (userLoc.exact) url += `&origin=${userLoc.lat},${userLoc.lng}`;
   return url;
 }
 
-function showResult(food) {
-  const picks = nearestStalls(food.id, userLoc, 3);
+/* Result + pagination state. Picks hold EVERY stall for the winning dish,
+   sorted by distance; `shown` is how many of them are currently revealed. */
+const PAGE_SIZE = 3;
+let currentFood = null;
+let currentPicks = [];
+let shownCount = 0;
 
-  const list = picks.map((s, i) => `
-    <li class="flex items-start gap-3 rounded-2xl border border-chilli-100/70 bg-white p-3.5 shadow-[0_4px_14px_-8px_rgba(138,0,20,.35)]">
-      <span class="mt-0.5 text-xl leading-none">${MEDALS[i] || '📍'}</span>
+function pickItem(s, i) {
+  return `
+    <li class="pick-row flex items-start gap-3 rounded-2xl border border-chilli-100/70 bg-white p-3.5 shadow-[0_4px_14px_-8px_rgba(138,0,20,.35)]">
+      <span class="mt-0.5 w-6 shrink-0 text-center text-xl leading-none">${
+        MEDALS[i] || `<span class="text-[12px] font-extrabold text-kopi-700/40">${i + 1}</span>`
+      }</span>
       <div class="min-w-0 flex-1">
-        <p class="clamp2 text-[15px] font-extrabold leading-snug text-kopi-800">${esc(s.n)}</p>
-        <p class="mt-0.5 clamp2 text-[12.5px] font-medium leading-snug text-kopi-700/65">${esc(s.c)}</p>
+        <p class="clamp2 text-[15px] font-extrabold leading-snug text-kopi-800">${esc(s.n || s.c)}</p>
+        <p class="mt-0.5 clamp2 text-[12.5px] font-medium leading-snug text-kopi-700/65">${
+          s.n ? esc(s.c)
+              : `${esc(currentFood ? currentFood.name : 'Hawker')} stalls &middot; hawker centre`
+        }</p>
         <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
           <span class="rounded-full bg-chilli-50 px-2 py-0.5 text-[11px] font-extrabold text-chilli-600">${fmtDistance(s.dist)}</span>
           <span class="rounded-full bg-kaya-400/20 px-2 py-0.5 text-[11px] font-bold text-sambal-600">${travelTime(s.dist)}</span>
@@ -982,7 +1146,52 @@ function showResult(food) {
         <span class="text-base leading-none">🧭</span>
         <span class="text-[10px] font-extrabold uppercase tracking-wide">Go</span>
       </a>
-    </li>`).join('');
+    </li>`;
+}
+
+/** Repaint just the stall list + its "show more" controls. */
+function renderPicks(animateFrom = 0) {
+  const listEl = $('#pickList');
+  const moreEl = $('#pickMore');
+  if (!listEl) return;
+
+  listEl.innerHTML = currentPicks.slice(0, shownCount).map(pickItem).join('');
+  // Only animate rows that just appeared, so the existing ones don't re-flash.
+  [...listEl.children].forEach((el, i) => {
+    if (i >= animateFrom) el.classList.add('pick-in');
+  });
+
+  const left = currentPicks.length - shownCount;
+  moreEl.innerHTML = left <= 0
+    ? `<p class="pt-1 text-center text-[11px] font-semibold text-kopi-700/40">
+         That's all ${currentPicks.length} places for this dish 🍽️
+       </p>`
+    : `<div class="flex gap-2">
+         <button type="button" data-act="more"
+           class="btn-press flex-1 rounded-2xl border-2 border-chilli-100 bg-white px-3 py-2.5 text-[13px] font-extrabold text-chilli-600">
+           ▾ Show ${Math.min(PAGE_SIZE, left)} more
+         </button>
+         ${left > PAGE_SIZE ? `
+         <button type="button" data-act="all"
+           class="btn-press rounded-2xl bg-chilli-50 px-3 py-2.5 text-[13px] font-extrabold text-chilli-600">
+           View all ${currentPicks.length}
+         </button>` : ''}
+       </div>`;
+
+  const showMore = (n) => {
+    const from = shownCount;
+    shownCount = Math.min(n, currentPicks.length);
+    renderPicks(from);
+  };
+  moreEl.querySelector('[data-act="more"]')?.addEventListener('click', () => showMore(shownCount + PAGE_SIZE));
+  moreEl.querySelector('[data-act="all"]')?.addEventListener('click', () => showMore(currentPicks.length));
+}
+
+function showResult(food, opts = {}) {
+  currentFood = food;
+  currentPicks = nearestStalls(food.id, userLoc, Infinity);
+  shownCount = Math.min(PAGE_SIZE, currentPicks.length);
+  const picks = currentPicks;
 
   resultEl.innerHTML = `
     <div class="card-pop overflow-hidden rounded-3xl border border-chilli-100 bg-white/95 shadow-[0_18px_40px_-20px_rgba(138,0,20,.6)] backdrop-blur">
@@ -998,41 +1207,176 @@ function showResult(food) {
           <h3 class="shrink-0 text-[13px] font-extrabold uppercase tracking-wide text-kopi-800">Chope your seat here</h3>
           <span class="truncate pl-2 text-[11px] font-bold text-kopi-700/50">near ${esc(userLoc.short || userLoc.label)}</span>
         </div>
-        <ul class="stagger space-y-2.5">${list}</ul>
+        <ul id="pickList" class="space-y-2.5"></ul>
+        <div id="pickMore" class="mt-3"></div>
 
         <div class="mt-4 flex gap-2.5">
           <button type="button" data-act="respin"
             class="btn-press flex-1 rounded-2xl bg-kopi-800 px-4 py-3 text-[14px] font-extrabold text-rice-50 shadow-[0_8px_18px_-10px_rgba(54,32,15,.9)]">
-            🎲 Spin again
+            🎲 Spin Again
           </button>
           <button type="button" data-act="share"
             class="btn-press rounded-2xl border-2 border-chilli-100 bg-white px-4 py-3 text-[14px] font-extrabold text-chilli-600">
-            📣 Jio friends
+            📣 Jio Friends
           </button>
         </div>
       </div>
     </div>`;
 
   resultEl.classList.remove('hidden');
+  renderPicks(0);
 
   resultEl.querySelector('[data-act="respin"]').addEventListener('click', () => {
     document.querySelector('.wheel-stage').scrollIntoView({ behavior: 'smooth', block: 'center' });
     setTimeout(spin, 320);
   });
 
-  resultEl.querySelector('[data-act="share"]').addEventListener('click', async () => {
-    const top = picks[0];
-    const text = `Makan Roulette says: ${food.name}! 🎯 Nearest — ${top.n} at ${top.c} (${fmtDistance(top.dist)}). Jio me?`;
-    try {
-      if (navigator.share) await navigator.share({ title: 'Makan Roulette', text });
-      else if (navigator.clipboard) { await navigator.clipboard.writeText(text); toast('Copied! Paste in the group chat 📋'); }
-      else toast(text);
-    } catch (_) { /* user cancelled the share sheet */ }
-  });
+  resultEl.querySelector('[data-act="share"]').addEventListener('click', openShare);
 
-  setTimeout(() => resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 420);
+  if (!opts.silent) {
+    setTimeout(() => resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 420);
+  }
 }
 
+/* ============================================================
+   7b. Sharing
+   ============================================================ */
+
+/** A link that reopens the app on THIS result, for whoever receives it. */
+function buildShareUrl(food) {
+  const base = location.origin + location.pathname;
+  const p = new URLSearchParams({ f: food.id });
+  if (Number.isFinite(userLoc.lat) && Number.isFinite(userLoc.lng)) {
+    p.set('lat', userLoc.lat.toFixed(5));
+    p.set('lng', userLoc.lng.toFixed(5));
+    p.set('at', userLoc.short || userLoc.label);
+  }
+  return `${base}#${p.toString()}`;
+}
+
+function buildShareText(food) {
+  const top = currentPicks[0];
+  if (!top) return `Makan Roulette says: ${food.name}! 🎯 Jio me?`;
+  const where = top.n ? `${top.n} at ${top.c}` : top.c;
+  return `Makan Roulette says: ${food.name}! 🎯 Nearest — ${where} (${fmtDistance(top.dist)}). Jio me?`;
+}
+
+/* Only platforms with a real public web-share endpoint. Instagram, TikTok and
+   WeChat are deliberately absent — they publish no such URL for arbitrary
+   links, so a button could only open the app's homepage, not a composer. */
+const SHARE_TARGETS = [
+  { id:'whatsapp', label:'WhatsApp', emoji:'💬',
+    url: (t, u) => `https://wa.me/?text=${encodeURIComponent(`${t} ${u}`)}` },
+  { id:'telegram', label:'Telegram', emoji:'✈️',
+    url: (t, u) => `https://t.me/share/url?url=${encodeURIComponent(u)}&text=${encodeURIComponent(t)}` },
+  { id:'facebook', label:'Facebook', emoji:'📘',
+    url: (t, u) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}` },
+  { id:'x', label:'X', emoji:'✖️',
+    url: (t, u) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(t)}&url=${encodeURIComponent(u)}` },
+  { id:'line', label:'LINE', emoji:'🟢',
+    url: (t, u) => `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(u)}&text=${encodeURIComponent(t)}` },
+  { id:'reddit', label:'Reddit', emoji:'🟠',
+    url: (t, u) => `https://www.reddit.com/submit?url=${encodeURIComponent(u)}&title=${encodeURIComponent(t)}` },
+  { id:'sms', label:'SMS', emoji:'📱',
+    url: (t, u) => `sms:?&body=${encodeURIComponent(`${t} ${u}`)}` },
+  { id:'email', label:'Email', emoji:'✉️',
+    url: (t, u) => `mailto:?subject=${encodeURIComponent('Makan Roulette')}&body=${encodeURIComponent(`${t}\n\n${u}`)}` }
+];
+
+const shareSheet = $('#shareSheet');
+const shareScrim = $('#shareScrim');
+
+function openShare() {
+  if (!currentFood) return;
+  const text = buildShareText(currentFood);
+  const url = buildShareUrl(currentFood);
+
+  $('#sharePreview').innerHTML =
+    `${esc(text)}<br /><span class="break-all font-semibold text-chilli-600">${esc(url)}</span>`;
+
+  $('#shareGrid').innerHTML = SHARE_TARGETS.map((t) => `
+    <a href="${esc(t.url(text, url))}" target="_blank" rel="noopener noreferrer"
+       class="btn-press flex flex-col items-center gap-1 rounded-2xl border border-chilli-100 bg-white px-1 py-3 shadow-sm">
+      <span class="text-xl leading-none">${t.emoji}</span>
+      <span class="text-[10px] font-extrabold text-kopi-800">${esc(t.label)}</span>
+    </a>`).join('');
+
+  // The OS share sheet is the only route to real contacts — a web page cannot
+  // read your address book or recent chats.
+  $('#nativeShareBtn').classList.toggle('hidden', !navigator.share);
+
+  shareSheet.classList.remove('translate-y-full');
+  shareScrim.classList.remove('opacity-0', 'pointer-events-none');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeShare() {
+  shareSheet.classList.add('translate-y-full');
+  shareScrim.classList.add('opacity-0', 'pointer-events-none');
+  document.body.style.overflow = '';
+}
+
+$('#shareClose').addEventListener('click', closeShare);
+shareScrim.addEventListener('click', closeShare);
+
+$('#copyBtn').addEventListener('click', async () => {
+  const payload = `${buildShareText(currentFood)}\n${buildShareUrl(currentFood)}`;
+  try {
+    await navigator.clipboard.writeText(payload);
+    toast('Link copied! Paste in the group chat 📋');
+    closeShare();
+  } catch (_) {
+    // Clipboard API needs HTTPS; fall back to a selectable textarea.
+    const ta = document.createElement('textarea');
+    ta.value = payload;
+    ta.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:80;width:80%;height:6rem';
+    document.body.appendChild(ta);
+    ta.select();
+    toast('Press Ctrl/Cmd + C to copy');
+    setTimeout(() => ta.remove(), 4000);
+  }
+});
+
+$('#nativeShareBtn').addEventListener('click', async () => {
+  try {
+    await navigator.share({
+      title: 'Makan Roulette',
+      text: buildShareText(currentFood),
+      url: buildShareUrl(currentFood)
+    });
+    closeShare();
+  } catch (_) { /* user cancelled */ }
+});
+
+/**
+ * If the page was opened from a shared link, restore that result instead of
+ * showing a blank wheel. Returns true when it took over.
+ */
+function consumeSharedResult() {
+  const raw = location.hash.replace(/^#/, '');
+  if (!raw) return false;
+  const p = new URLSearchParams(raw);
+  const food = FOODS.find((f) => f.id === p.get('f'));
+  if (!food) return false;
+
+  const lat = parseFloat(p.get('lat'));
+  const lng = parseFloat(p.get('lng'));
+  if (Number.isFinite(lat) && Number.isFinite(lng) && inSingapore({ lat, lng })) {
+    const at = p.get('at') || describeLocation({ lat, lng }).short;
+    setLocation({ lat, lng, label: at, short: at, exact: false }, '🔗');
+  }
+
+  // Park the wheel on the shared dish so the pointer agrees with the card.
+  rotation = ((Math.PI * 1.5 - (FOODS.indexOf(food) + 0.5) * SEG) % TAU + TAU) % TAU;
+  render();
+
+  hintText.innerHTML = 'Someone jio-ed you this! 🎉 Tap <span class="text-chilli-600">SPIN</span> for your own.';
+  spinLabel.textContent = 'SPIN';
+  showResult(food, { silent: true });
+  return true;
+}
+
+/* Tiny toast */
 function toast(msg) {
   const el = document.createElement('div');
   el.className = 'fixed left-1/2 bottom-8 z-[70] -translate-x-1/2 rounded-full bg-kopi-800 px-4 py-2.5 text-center text-[13px] font-bold text-rice-50 shadow-xl';
@@ -1189,7 +1533,9 @@ $('#locationBtn').addEventListener('click', openSheet);
 $('#sheetClose').addEventListener('click', closeSheet);
 scrim.addEventListener('click', closeSheet);
 $('#gpsBtn').addEventListener('click', () => requestGeolocation(true));
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeSheet(); closeShare(); }
+});
 
 const placeList = $('#placeList');
 const placeSearch = $('#placeSearch');
@@ -1267,7 +1613,9 @@ $('#year').textContent = new Date().getFullYear();
 
 resizeCanvas();
 sizeConfetti();
-requestGeolocation(false);
+
+// A shared link brings its own location; don't clobber it with a GPS prompt.
+if (!consumeSharedResult()) requestGeolocation(false);
 
 /* Re-render once the webfont lands so wheel labels aren't drawn in a fallback. */
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(render).catch(() => {});
